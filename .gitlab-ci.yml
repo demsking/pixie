@@ -1,3 +1,5 @@
+image: rust:latest
+
 stages:
   - validate
   - test
@@ -25,25 +27,21 @@ before_script:
 
 fmt:
   stage: validate
-  image: rust:latest
   script:
     - make fmt-check
 
 clippy:
   stage: validate
-  image: rust:latest
   script:
     - make lint
 
 test:
   stage: test
-  image: rust:latest
   script:
     - make test-all
 
 audit:
   stage: security
-  image: rust:latest
   script:
     - cargo install cargo-audit
     - make audit
@@ -51,14 +49,12 @@ audit:
 
 deny:
   stage: security
-  image: rust:latest
   script:
     - cargo install --locked cargo-deny
     - make deny
 
 build-release:
   stage: build
-  image: rust:latest
   script:
     - make build-release
   artifacts:
@@ -79,7 +75,7 @@ flatpak:
 
 pages:
   stage: documentation
-  image: rust:latest
+
   before_script:
     - apt-get update -yq && apt-get install -y --no-install-recommends libgtk-4-dev libadwaita-1-dev pkg-config make
     - cargo install mdbook
