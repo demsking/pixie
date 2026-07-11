@@ -47,11 +47,7 @@ pub struct PixieWindow {
   rotate_btn: gtk4::Button,
   mirror_btn: gtk4::Button,
   flip_btn: gtk4::Button,
-  nav_revealer: gtk4::Revealer,
-  tool_revealer: gtk4::Revealer,
-  crop_actions_revealer: gtk4::Revealer,
-  crop_actions_bar_visible: std::cell::Cell<bool>,
-  motion_controller: gtk4::EventControllerMotion,
+  crop_actions_bar: gtk4::Box,
   undo_btn: gtk4::Button,
   redo_btn: gtk4::Button,
   save_btn: gtk4::Button,
@@ -265,6 +261,10 @@ impl PixieWindow {
     let nav_bar = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(0)
+      .margin_bottom(16)
+      .margin_start(16)
+      .halign(gtk4::Align::Start)
+      .valign(gtk4::Align::End)
       .css_classes(["floating-bar"])
       .build();
 
@@ -282,23 +282,15 @@ impl PixieWindow {
       .build();
     nav_bar.append(&nav_prev_btn);
     nav_bar.append(&nav_next_btn);
-
-    let nav_revealer = gtk4::Revealer::builder()
-      .transition_type(gtk4::RevealerTransitionType::Crossfade)
-      .transition_duration(200)
-      .reveal_child(false)
-      .margin_bottom(16)
-      .margin_start(16)
-      .halign(gtk4::Align::Start)
-      .valign(gtk4::Align::End)
-      .child(&nav_bar)
-      .build();
-    overlay.add_overlay(&nav_revealer);
+    overlay.add_overlay(&nav_bar);
 
     // ── Floating tool bar (bottom-right) ─────────────────────────────
     let tool_bar = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(6)
+      .margin_bottom(16)
+      .halign(gtk4::Align::End)
+      .valign(gtk4::Align::End)
       .css_classes(["floating-bar"])
       .build();
 
@@ -307,24 +299,17 @@ impl PixieWindow {
     tool_bar.append(&rotate_btn);
     tool_bar.append(&mirror_btn);
     tool_bar.append(&flip_btn);
-
-    let tool_revealer = gtk4::Revealer::builder()
-      .transition_type(gtk4::RevealerTransitionType::Crossfade)
-      .transition_duration(200)
-      .reveal_child(false)
-      .margin_bottom(16)
-      .margin_end(16)
-      .halign(gtk4::Align::End)
-      .valign(gtk4::Align::End)
-      .child(&tool_bar)
-      .build();
-    overlay.add_overlay(&tool_revealer);
+    overlay.add_overlay(&tool_bar);
 
     // ── Floating crop actions bar (bottom-center) ─────────────────────
     let crop_actions_bar = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(6)
+      .margin_bottom(16)
+      .halign(gtk4::Align::Center)
+      .valign(gtk4::Align::End)
       .css_classes(["floating-bar"])
+      .visible(false)
       .build();
     let crop_cancel_btn = gtk4::Button::builder()
       .label("Cancel")
@@ -340,17 +325,7 @@ impl PixieWindow {
       .build();
     crop_actions_bar.append(&crop_cancel_btn);
     crop_actions_bar.append(&crop_apply_btn);
-
-    let crop_actions_revealer = gtk4::Revealer::builder()
-      .transition_type(gtk4::RevealerTransitionType::Crossfade)
-      .transition_duration(200)
-      .reveal_child(false)
-      .margin_bottom(16)
-      .halign(gtk4::Align::Center)
-      .valign(gtk4::Align::End)
-      .child(&crop_actions_bar)
-      .build();
-    overlay.add_overlay(&crop_actions_revealer);
+    overlay.add_overlay(&crop_actions_bar);
 
     // ── Floating progress bar (top-center of overlay) ───────────────────
     let progress_container = gtk4::Box::builder()
@@ -400,9 +375,6 @@ impl PixieWindow {
     let force_close = Rc::new(std::cell::Cell::new(false));
     let active_toasts = Rc::new(RefCell::new(Vec::<adw::Toast>::new()));
 
-    let motion_controller = gtk4::EventControllerMotion::new();
-    overlay.add_controller(motion_controller.clone());
-
     let win_struct = Rc::new(Self {
       window: window.clone(),
       canvas: canvas.clone(),
@@ -425,9 +397,7 @@ impl PixieWindow {
       rotate_btn: rotate_btn.clone(),
       mirror_btn: mirror_btn.clone(),
       flip_btn: flip_btn.clone(),
-      nav_revealer: nav_revealer.clone(),
-      tool_revealer: tool_revealer.clone(),
-      crop_actions_revealer: crop_actions_revealer.clone(),
+      crop_actions_bar: crop_actions_bar.clone(),
       undo_btn: undo_btn.clone(),
       redo_btn: redo_btn.clone(),
       save_btn: save_btn.clone(),
@@ -437,18 +407,6 @@ impl PixieWindow {
       zoom_badge_btn: zoom_badge_btn.clone(),
       scrolled: scrolled.clone(),
       stack: stack.clone(),
-      crop_actions_bar_visible: std::cell::Cell::new(false),
-      motion_controller: motion_controller.clone(),
-    });
-
-    let win_motion = win_struct.clone();
-    motion_controller.connect_enter(move |_, _x, _y| {
-      win_motion.update_floating_bars_visibility(true);
-    });
-
-    let win_motion_leave = win_struct.clone();
-    motion_controller.connect_leave(move |_| {
-      win_motion_leave.update_floating_bars_visibility(false);
     });
 
     let win_open_btn = win_struct.clone();
@@ -574,10 +532,10 @@ impl PixieWindow {
     crop_btn.connect_toggled(move |btn| {
       if btn.is_active() {
         resize_btn_clone.set_active(false);
-        win_cl6.set_crop_actions_bar_visible(false);
+        win_cl6.crop_actions_bar.set_visible(false);
         win_cl6.show_crop_tool();
       } else {
-        win_cl6.set_crop_actions_bar_visible(false);
+        win_cl6.crop_actions_bar.set_visible(false);
         win_cl6.close_sidebar_if_inactive();
       }
     });
@@ -587,7 +545,7 @@ impl PixieWindow {
     resize_btn.connect_toggled(move |btn| {
       if btn.is_active() {
         crop_btn_clone.set_active(false);
-        win_cl7.set_crop_actions_bar_visible(false);
+        win_cl7.crop_actions_bar.set_visible(false);
         win_cl7.show_resize_tool();
       } else {
         win_cl7.close_sidebar_if_inactive();
@@ -613,7 +571,7 @@ impl PixieWindow {
     let win_crop_drag_done = win_struct.clone();
     crop_drag_done.connect_drag_end(move |_, _, _| {
       if win_crop_drag_done.crop_btn.is_active() {
-        win_crop_drag_done.set_crop_actions_bar_visible(true);
+        win_crop_drag_done.crop_actions_bar.set_visible(true);
       }
     });
     canvas.drawing_area.add_controller(crop_drag_done);
@@ -621,7 +579,7 @@ impl PixieWindow {
     // Floating crop action buttons.
     let win_crop_cancel = win_struct.clone();
     crop_cancel_btn.connect_clicked(move |_| {
-      win_crop_cancel.set_crop_actions_bar_visible(false);
+      win_crop_cancel.crop_actions_bar.set_visible(false);
       win_crop_cancel.crop_btn.set_active(false);
     });
 
@@ -639,7 +597,7 @@ impl PixieWindow {
       } else {
         drop(state);
       }
-      win_crop_apply.set_crop_actions_bar_visible(false);
+      win_crop_apply.crop_actions_bar.set_visible(false);
       win_crop_apply.crop_btn.set_active(false);
     });
 
@@ -981,9 +939,6 @@ impl PixieWindow {
       WorkerOutput::Decoded { img, format } => {
         self.progress_bar.set_visible(false);
         self.stack.set_visible_child_name("canvas");
-        let is_hovering = self.motion_controller.contains_pointer();
-        self.update_floating_bars_visibility(is_hovering);
-
         let path = self.current_file_path.borrow();
         let file_name = path
           .as_ref()
@@ -1383,7 +1338,7 @@ impl PixieWindow {
     if !self.crop_btn.is_active() && !self.resize_btn.is_active() {
       self.close_tool_popover();
       self.canvas.set_crop_active(false);
-      self.set_crop_actions_bar_visible(false);
+      self.crop_actions_bar.set_visible(false);
     }
   }
 
@@ -1590,19 +1545,4 @@ impl PixieWindow {
     }
   }
 
-  fn update_floating_bars_visibility(&self, hover: bool) {
-    self.nav_revealer.set_reveal_child(hover);
-    self.tool_revealer.set_reveal_child(hover);
-    self
-      .crop_actions_revealer
-      .set_reveal_child(hover && self.crop_actions_bar_visible.get());
-  }
-
-  fn set_crop_actions_bar_visible(&self, visible: bool) {
-    self.crop_actions_bar_visible.set(visible);
-    let is_hovering = self.motion_controller.contains_pointer();
-    self
-      .crop_actions_revealer
-      .set_reveal_child(visible && is_hovering);
-  }
 }
