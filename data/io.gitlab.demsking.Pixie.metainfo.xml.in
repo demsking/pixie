@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.gitlab.demsking.Pixie</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Pixie</name>
+  <summary>Modern Image Processor</summary>
+  <description>
+    <p>
+      Pixie is a modern, secure, and lightweight image processor built with Rust and GTK4.
+      It provides focused tools for cropping, resizing, rotating, flipping, and
+      converting images without the complexity of a complete graphics editor.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.gitlab.demsking.Pixie.desktop</launchable>
+  <url type="homepage">https://demsking.gitlab.io/pixie</url>
+  <url type="bugtracker">https://gitlab.com/demsking/pixie/issues</url>
+  <developer_name>Sébastien Demanou</developer_name>
+</component>

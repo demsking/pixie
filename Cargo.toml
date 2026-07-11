@@ -1,0 +1,29 @@
+[workspace]
+members = [
+    "crates/pixie-core",
+    "crates/pixie-app",
+]
+resolver = "2"
+
+[workspace.package]
+authors = ["Sébastien Demanou <demsking@gmail.com>"]
+edition = "2024"
+homepage = "https://demsking.gitlab.io/pixie"
+repository = "https://gitlab.com/demsking/pixie"
+documentation = "https://demsking.gitlab.io/pixie"
+license = "GPL-3.0-or-later"
+description = "Modern Image Processor built with Rust and GTK4"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+collapsible_if = "allow"
+needless_borrows_for_generic_args = "allow"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

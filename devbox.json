@@ -1,0 +1,27 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-templates/devbox/main/.schema/devbox.schema.json",
+  "packages": [
+    "pre-commit@latest",
+    "tmux@latest",
+    "tmuxinator@latest",
+    "gnumake@latest",
+    "git@latest",
+    "zlib@latest",
+    "rustc@latest",
+    "cargo@latest"
+  ],
+  "shell": {
+    "scripts": {
+      "bootstrap":  "make bootstrap",
+      "build":      "make build",
+      "check":      "make check",
+      "test":       "make test-all",
+      "lint":       "make lint",
+      "run":        "make run",
+      "docs":       "make docs-build",
+      "docs-serve": "make docs-serve",
+      "flatpak":    "make flatpak-build",
+      "ci":         "make ci"
+    }
+  }
+}

@@ -1,0 +1,11 @@
+/target
+.devbox/
+.flatpak-builder/
+build/
+bin/
+public/
+docs/book/
+*.log
+.pre-commit-config.yaml.tmp
+.cargo-ok
+.install-ok

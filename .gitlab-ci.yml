@@ -1,0 +1,92 @@
+stages:
+  - validate
+  - test
+  - security
+  - build
+  - package
+  - documentation
+  - release
+
+variables:
+  CARGO_HOME: $CI_PROJECT_DIR/.cargo
+  APT_CACHE_DIR: $CI_PROJECT_DIR/apt
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .cargo/
+    - target/
+    - apt/
+
+before_script:
+  # Install GTK4 and Libadwaita development libraries
+  - apt-get update -yq
+  - apt-get install -y --no-install-recommends libgtk-4-dev libadwaita-1-dev pkg-config make
+
+fmt:
+  stage: validate
+  image: rust:latest
+  script:
+    - make fmt-check
+
+clippy:
+  stage: validate
+  image: rust:latest
+  script:
+    - make lint
+
+test:
+  stage: test
+  image: rust:latest
+  script:
+    - make test-all
+
+audit:
+  stage: security
+  image: rust:latest
+  script:
+    - cargo install cargo-audit
+    - make audit
+  allow_failure: true
+
+deny:
+  stage: security
+  image: rust:latest
+  script:
+    - cargo install --locked cargo-deny
+    - make deny
+
+build-release:
+  stage: build
+  image: rust:latest
+  script:
+    - make build-release
+  artifacts:
+    paths:
+      - target/release/pixie-app
+    expire_in: 1 week
+
+flatpak:
+  stage: package
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache flatpak-builder
+  script:
+    - echo "Validating flatpak manifest..."
+    - flatpak-builder --dry-run build packaging/flatpak/io.gitlab.demsking.Pixie.json
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+pages:
+  stage: documentation
+  image: rust:latest
+  before_script:
+    - apt-get update -yq && apt-get install -y --no-install-recommends libgtk-4-dev libadwaita-1-dev pkg-config make
+    - cargo install mdbook
+  script:
+    - make docs-build
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'

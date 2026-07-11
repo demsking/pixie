@@ -1,0 +1,32 @@
+{
+  "name": "Pixie Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "rust-analyzer.cargo.features": "all",
+        "rust-analyzer.check.command": "clippy"
+      },
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "serayuzgur.crates",
+        "vadimcn.vscode-lldb",
+        "editorconfig.editorconfig"
+      ]
+    }
+  },
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}"
+  },
+  "runArgs": [
+    "--net=host",
+    "--ipc=host",
+    "-v", "/tmp/.X11-unix:/tmp/.X11-unix:ro",
+    "--device=/dev/dri:/dev/dri"
+  ],
+  "postCreateCommand": "make bootstrap",
+  "remoteUser": "vscode"
+}

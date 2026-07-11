@@ -1,0 +1,38 @@
+{
+  "app-id": "io.gitlab.demsking.Pixie",
+  "runtime": "org.gnome.Platform",
+  "runtime-version": "46",
+  "sdk": "org.gnome.Sdk",
+  "sdk-extensions": [
+    "org.freedesktop.Sdk.Extension.rust-stable"
+  ],
+  "command": "pixie",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=fallback-x11",
+    "--socket=wayland",
+    "--device=dri"
+  ],
+  "build-options": {
+    "append-path": "/usr/lib/sdk/rust-stable/bin"
+  },
+  "modules": [
+    {
+      "name": "pixie",
+      "buildsystem": "simple",
+      "build-commands": [
+        "cargo build --release --locked",
+        "install -Dm755 target/release/pixie-app /app/bin/pixie",
+        "install -Dm644 data/io.gitlab.demsking.Pixie.desktop.in /app/share/applications/io.gitlab.demsking.Pixie.desktop",
+        "install -Dm644 data/io.gitlab.demsking.Pixie.metainfo.xml.in /app/share/metainfo/io.gitlab.demsking.Pixie.metainfo.xml",
+        "install -Dm644 data/io.gitlab.demsking.Pixie.png /app/share/icons/hicolor/256x256/apps/io.gitlab.demsking.Pixie.png"
+      ],
+      "sources": [
+        {
+          "type": "dir",
+          "path": "../.."
+        }
+      ]
+    }
+  ]
+}

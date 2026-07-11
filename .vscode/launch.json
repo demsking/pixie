@@ -1,0 +1,65 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Pixie App",
+      "cargo": {
+        "args": [
+          "build",
+          "--bin=pixie-app",
+          "--package=pixie-app"
+        ],
+        "filter": {
+          "name": "pixie-app",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_BACKTRACE": "1",
+        "RUST_LOG": "pixie_app=debug,pixie_core=debug,info"
+      }
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Unit Tests (pixie-core)",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--package=pixie-core"
+        ],
+        "filter": {
+          "kind": "lib"
+        }
+      },
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_BACKTRACE": "1"
+      }
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug Unit Tests (pixie-app)",
+      "cargo": {
+        "args": [
+          "test",
+          "--no-run",
+          "--package=pixie-app"
+        ],
+        "filter": {
+          "kind": "bin"
+        }
+      },
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "RUST_BACKTRACE": "1"
+      }
+    }
+  ]
+}

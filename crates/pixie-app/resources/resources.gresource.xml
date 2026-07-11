@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/io/gitlab/demsking/Pixie">
+    <file compressed="true">style.css</file>
+    <file compressed="true" alias="icons/hicolor/256x256/apps/io.gitlab.demsking.Pixie.png">io.gitlab.demsking.Pixie.png</file>
+  </gresource>
+</gresources>

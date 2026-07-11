@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Pixie
+Comment=Modern Image Processor
+Type=Application
+Exec=pixie %F
+Icon=io.gitlab.demsking.Pixie
+Categories=Graphics;2DGraphics;RasterGraphics;GTK;
+MimeType=image/png;image/jpeg;image/webp;image/bmp;image/tiff;image/gif;image/avif;
+Terminal=false
+StartupNotify=true
