@@ -108,10 +108,6 @@ impl ResizeToolView {
     height_spin.set_hexpand(true);
     container.append(&height_spin);
 
-    // Lock Toggle Button
-    let lock_btn = gtk4::ToggleButton::builder().label("🔗 Lock Aspect Ratio").active(true).build();
-    container.append(&lock_btn);
-
     // Percentage SpinButton
     let pct_label = gtk4::Label
       ::builder()
@@ -124,6 +120,27 @@ impl ResizeToolView {
     pct_spin.set_value(100.0);
     pct_spin.set_hexpand(true);
     container.append(&pct_spin);
+
+    // Lock Aspect Ratio Switch
+    let aspect_lock_box = gtk4::Box
+      ::builder()
+      .orientation(gtk4::Orientation::Horizontal)
+      .spacing(6)
+      .build();
+    let aspect_lock_label = gtk4::Label
+      ::builder()
+      .label("Lock Aspect Ratio")
+      .hexpand(true)
+      .halign(gtk4::Align::Start)
+      .build();
+    let aspect_lock_switch = gtk4::Switch
+      ::builder()
+      .active(true)
+      .valign(gtk4::Align::Center)
+      .build();
+    aspect_lock_box.append(&aspect_lock_label);
+    aspect_lock_box.append(&aspect_lock_switch);
+    container.append(&aspect_lock_box);
 
     // Prevent Enlargement Switch
     let enlarge_box = gtk4::Box
@@ -225,8 +242,8 @@ impl ResizeToolView {
     // Aspect lock callback
     {
       let aspect_locked = aspect_ratio_locked.clone();
-      lock_btn.connect_toggled(move |btn| {
-        aspect_locked.set(btn.is_active());
+      aspect_lock_switch.connect_active_notify(move |sw| {
+        aspect_locked.set(sw.is_active());
       });
     }
 
