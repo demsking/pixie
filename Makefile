@@ -4,6 +4,10 @@
 YELLOW := \033[33m
 RESET  := \033[0m
 
+.PHONY: shell
+shell: ## Launch tmuxinator workspace
+	tmuxinator start pixie
+
 .PHONY: help
 help: ## Display this help message
 	@echo "Usage: make [target]"
@@ -152,7 +156,3 @@ version-bump:
 
 .PHONY: ci
 ci: fmt-check lint test-all security docs-build build-release ## Run all CI steps locally
-
-.PHONY: tmux
-tmux: ## Launch tmuxinator workspace
-	tmuxinator start pixie

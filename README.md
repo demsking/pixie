@@ -10,7 +10,7 @@ Pixie is a modern, secure, and lightweight GTK4 image processor built with Rust.
 It provides focused tools for cropping, resizing, rotating, flipping, and
 converting images without the complexity of a complete graphics editor.
 
-![Screenshot Placeholder](data/io.gitlab.demsking.Pixie.png)
+![Screenshot Placeholder](logo.png)
 
 ## Features
 
@@ -72,59 +72,39 @@ make flatpak-build
 make flatpak-run
 ```
 
-## GNU Make Commands
-
-We expose common tasks via the root `Makefile`:
-
-```text
-make bootstrap      - Set up local dependencies & hooks
-make check          - Check compilation
-make test-all       - Run unit, property, and integration tests
-make run            - Run Pixie desktop app
-make lint           - Run Clippy checks
-make fmt            - Format codebase
-make security       - Run cargo-audit and cargo-deny checks
-make docs-build     - Compile mdBook and API docs
-make tmux           - Start tmuxinator workspace
-```
-
-## tmux and tmuxinator Workflow
-
-Start your pre-configured editor, logs, and test shell with:
-```bash
-make tmux
-```
-It utilizes [.tmuxinator.yml](https://gitlab.com/demsking/pixie/-/blob/main/.tmuxinator.yml) to launch editor, application runners, tests, and documentation servers.
-
-### gitmux Configuration
-Displays Git status in your tmux status bar. See configuration in [.gitmux.conf](https://gitlab.com/demsking/pixie/-/blob/main/.gitmux.conf).
-
-## Development Workflow & Code Quality
-
-Our quality checks are enforced via:
-1. **Pre-commit Hooks**: Pinned pre-commit hooks validate formatting, shebangs, YAML, TOML, and JSON files on commit.
-2. **GitLab CI**: GitLab CI pipelines execute tests, security scans, format checks, build targets, and mdBook pages updates.
-
-## Project Architecture
-
-```text
-pixie/
-├── crates/
-│   ├── pixie-core/   - Headless image transformations, pipeline and history tracking
-│   └── pixie-app/    - GTK4 / Libadwaita window components and background workers
-```
-
 ## Documentation
 
 The complete documentation is available at:
 
 https://demsking.gitlab.io/pixie
 
-## Repository
+## Contribute
 
-git@gitlab.com:demsking/pixie.git
+Please follow [CONTRIBUTING.md](https://gitlab.com/demsking/pixie/blob/main/CONTRIBUTING.md).
 
-## Author
+## Versioning
 
-Pixie is developed and maintained by Sébastien Demanou.
-Contact: demsking@gmail.com
+Given a version number `MAJOR.MINOR.PATCH`, increment the:
+
+- `MAJOR` version when you make incompatible API changes,
+- `MINOR` version when you add functionality in a backwards-compatible manner,
+  and
+- `PATCH` version when you make backwards-compatible bug fixes.
+
+Additional labels for pre-release and build metadata are available as extensions
+to the `MAJOR.MINOR.PATCH` format.
+
+See [SemVer.org](https://semver.org/) for more details.
+
+## License
+
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+    Copyright © 2026 Sébastien Demanou <demsking@gmail.com>
+
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.
+
+You may obtain a copy of the License at
+[LICENSE](https://gitlab.com/demsking/pixie/blob/main/LICENSE).
