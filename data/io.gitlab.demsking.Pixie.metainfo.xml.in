@@ -7,9 +7,9 @@
   <summary>Modern Image Processor</summary>
   <description>
     <p>
-      Pixie is a modern, secure, and lightweight image processor built with Rust and GTK4.
-      It provides focused tools for cropping, resizing, rotating, flipping, and
-      converting images without the complexity of a complete graphics editor.
+      Pixie is a modern, secure image processor built for the GNOME desktop.
+      Crop, resize, rotate, flip, and convert your images with precision—all
+      in a clean, intuitive interface that respects your privacy and performance.
     </p>
   </description>
   <launchable type="desktop-id">io.gitlab.demsking.Pixie.desktop</launchable>
