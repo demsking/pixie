@@ -66,6 +66,21 @@ pub struct PixieWindow {
 }
 
 impl PixieWindow {
+  fn refresh_window_title(&self) {
+    let title = if let Some(path) = self.current_file_path.borrow().as_ref() {
+      let file_name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "Unknown".to_string());
+      let dirty_prefix = if self.has_unsaved_changes() { "* " } else { "" };
+      format!("{dirty_prefix}{file_name} — Pixie")
+    } else {
+      "Pixie".to_string()
+    };
+
+    self.window.set_title(Some(&title));
+  }
+
   pub fn new(app: &adw::Application) -> Rc<Self> {
     let window = adw::ApplicationWindow::builder()
       .application(app)
@@ -1119,11 +1134,6 @@ impl PixieWindow {
         self.progress_bar.set_visible(false);
         self.stack.set_visible_child_name("canvas");
         let path = self.current_file_path.borrow();
-        let file_name = path
-          .as_ref()
-          .and_then(|p| p.file_name())
-          .map(|n| n.to_string_lossy().into_owned())
-          .unwrap_or_else(|| "Unknown".to_string());
 
         let doc = PixieDocument::open(&std::fs::read(path.as_ref().unwrap()).unwrap()).unwrap(); // safe re-decoding context
         self.undo_btn.set_sensitive(doc.history().can_undo());
@@ -1151,7 +1161,7 @@ impl PixieWindow {
         ));
 
         // Title
-        self.window.set_title(Some(&format!("{file_name} — Pixie")));
+        self.refresh_window_title();
 
         // Activate actions
         self.save_btn.set_sensitive(true);
@@ -1208,6 +1218,7 @@ impl PixieWindow {
           self.redo_btn.set_sensitive(doc.history().can_redo());
         }
 
+        self.refresh_window_title();
         self.show_toast("Operation applied successfully");
       }
       WorkerOutput::Exported { path } => {
@@ -1219,6 +1230,7 @@ impl PixieWindow {
             self.saved_metadata_policy.set(doc.metadata_policy);
             *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
           }
+          self.refresh_window_title();
         }
       }
       WorkerOutput::Error(e) => {
@@ -1390,14 +1402,8 @@ impl PixieWindow {
         move |result| {
           if let Ok(file) = result {
             if let Some(path) = file.path() {
-              let file_name = path
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "Unknown".to_string());
-              self_cl
-                .window
-                .set_title(Some(&format!("{file_name} — Pixie")));
               *self_cl.current_file_path.borrow_mut() = Some(path.clone());
+              self_cl.refresh_window_title();
               self_cl.perform_export(path, options.clone());
             }
           }
@@ -1448,6 +1454,7 @@ impl PixieWindow {
   }
 
   fn trigger_undo(self: &Rc<Self>) {
+    let mut did_undo = false;
     let mut doc_borrow = self.document.borrow_mut();
     if let Some(ref mut doc) = *doc_borrow {
       if doc.undo() {
@@ -1455,12 +1462,19 @@ impl PixieWindow {
         self.canvas.set_image(current);
         self.undo_btn.set_sensitive(doc.history().can_undo());
         self.redo_btn.set_sensitive(doc.history().can_redo());
-        self.show_toast("Undo applied");
+        did_undo = true;
       }
+    }
+
+    drop(doc_borrow);
+    if did_undo {
+      self.refresh_window_title();
+      self.show_toast("Undo applied");
     }
   }
 
   fn trigger_redo(self: &Rc<Self>) {
+    let mut did_redo = false;
     let mut doc_borrow = self.document.borrow_mut();
     if let Some(ref mut doc) = *doc_borrow {
       if doc.redo() {
@@ -1468,8 +1482,14 @@ impl PixieWindow {
         self.canvas.set_image(current);
         self.undo_btn.set_sensitive(doc.history().can_undo());
         self.redo_btn.set_sensitive(doc.history().can_redo());
-        self.show_toast("Redo applied");
+        did_redo = true;
       }
+    }
+
+    drop(doc_borrow);
+    if did_redo {
+      self.refresh_window_title();
+      self.show_toast("Redo applied");
     }
   }
 
@@ -1683,13 +1703,19 @@ impl PixieWindow {
     let c_entry = copyright_entry.clone();
     let s_entry = software_entry.clone();
     apply_btn.connect_clicked(move |_| {
+      let mut changed = false;
       let mut doc_borrow = self_apply.document.borrow_mut();
       if let Some(ref mut doc) = *doc_borrow {
         doc.metadata_edits.image_description = resolve(&d_entry);
         doc.metadata_edits.artist = resolve(&a_entry);
         doc.metadata_edits.copyright = resolve(&c_entry);
         doc.metadata_edits.software = resolve(&s_entry);
+        changed = true;
         self_apply.show_toast("Metadata edits saved. Changes will be applied on Save/Convert.");
+      }
+      drop(doc_borrow);
+      if changed {
+        self_apply.refresh_window_title();
       }
       popover_apply.popdown();
     });
