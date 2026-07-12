@@ -7,7 +7,7 @@ Thank you for your interest in contributing to Pixie! This document guides you t
 Check that [our issue database](https://gitlab.com/demsking/oremi-isinmi-agent/issues)
 doesn't already include that problem or suggestion before submitting an issue.
 If you find a match, you can use the "subscribe" button to get notified on
-updates. Do *not* leave random "+1" or "I have this too" comments, as they
+updates. Do _not_ leave random "+1" or "I have this too" comments, as they
 only clutter the discussion, and don't help resolving it. However, if you
 have ways to reproduce the issue or have additional information that may help
 resolving the issue, please leave a comment.
@@ -34,16 +34,15 @@ reproduce the issue.
 
 Therefore:
 
-* The details of your environment including OS version, Python version.
-* Provide reproducible steps, what the result of the steps was, and what you
+- The details of your environment including OS version, Python version.
+- Provide reproducible steps, what the result of the steps was, and what you
   would have expected.
-* A detailed description of the behavior that you expect.
+- A detailed description of the behavior that you expect.
 
 ## Developer Setup
 
 Devbox is a command-line tool that lets you easily create isolated shells for
 development.
-
 
 1. **Install Devbox**
    - Follow the instructions to [install Devbox](https://www.jetify.com/devbox/docs/installing_devbox/).
@@ -53,10 +52,10 @@ development.
      guide](https://direnv.net/docs/installation.html#from-system-packages).
 
 3. **Hook `direnv` into Your Shell**
-   - Follow the steps to [hook `direnv` into your shell](
-     https://direnv.net/docs/hook.html).
+   - Follow the steps to [hook `direnv` into your shell](https://direnv.net/docs/hook.html).
 
 4. **Clone the Repository**:
+
    ```bash
    git clone git@gitlab.com:demsking/pixie.git
    cd pixie
@@ -71,9 +70,11 @@ development.
      `direnv` will automatically load the Devbox environment.
 
 6. **Bootstrap the Environment**:
+
    ```bash
    devbox run bootstrap
    ```
+
    This will install all necessary development tools, verify dependencies, and register git hooks.
 
 7. **Start Environment**
@@ -104,6 +105,8 @@ make bootstrap      - Set up local dependencies & hooks
 make check          - Check compilation
 make test-all       - Run unit, property, and integration tests
 make run            - Run Pixie desktop app
+make outdated       - Check for outdated dependencies
+make update         - Update dependencies
 make lint           - Run Clippy checks
 make fmt            - Format codebase
 make security       - Run cargo-audit and cargo-deny checks
@@ -123,6 +126,7 @@ pixie/
 ### tmux Workspace
 
 You can launch a pre-configured tmuxinator development workspace with:
+
 ```bash
 make shell
 ```

@@ -19,6 +19,12 @@ help: ## Display this help message
 bootstrap: ## Setup local development environment and dependencies
 	@bash scripts/bootstrap.sh
 
+outdated:
+	cargo install cargo-outdated
+
+update:
+	cargo update
+
 .PHONY: install-hooks
 install-hooks: ## Install pre-commit and pre-push hooks
 	pre-commit install
