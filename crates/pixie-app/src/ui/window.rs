@@ -443,36 +443,36 @@ impl PixieWindow {
       .build();
     popover_box.append(&title_label);
 
-    let all_metadata_check = gtk4::CheckButton::builder()
-      .label("All EXIF and related metadata")
-      .active(false)
-      .build();
+    let all_metadata_switch = gtk4::Switch::builder().active(false).build();
+    let gps_switch = gtk4::Switch::builder().active(true).build();
+    let camera_switch = gtk4::Switch::builder().active(true).build();
+    let timestamp_switch = gtk4::Switch::builder().active(true).build();
+    let comment_switch = gtk4::Switch::builder().active(true).build();
 
-    let gps_check = gtk4::CheckButton::builder()
-      .label("GPS coordinates")
-      .active(true)
-      .build();
+    let make_switch_row = |label: &str, switch: &gtk4::Switch| {
+      let row = gtk4::Box::builder()
+        .orientation(gtk4::Orientation::Horizontal)
+        .spacing(8)
+        .build();
+      row.append(
+        &gtk4::Label::builder()
+          .label(label)
+          .hexpand(true)
+          .halign(gtk4::Align::Start)
+          .build(),
+      );
+      row.append(switch);
+      row
+    };
 
-    let camera_check = gtk4::CheckButton::builder()
-      .label("Camera models & specs")
-      .active(true)
-      .build();
-
-    let timestamp_check = gtk4::CheckButton::builder()
-      .label("Timestamps & dates")
-      .active(true)
-      .build();
-
-    let comment_check = gtk4::CheckButton::builder()
-      .label("Comments & software")
-      .active(true)
-      .build();
-
-    popover_box.append(&all_metadata_check);
-    popover_box.append(&gps_check);
-    popover_box.append(&camera_check);
-    popover_box.append(&timestamp_check);
-    popover_box.append(&comment_check);
+    popover_box.append(&make_switch_row(
+      "All EXIF and related metadata",
+      &all_metadata_switch,
+    ));
+    popover_box.append(&make_switch_row("GPS coordinates", &gps_switch));
+    popover_box.append(&make_switch_row("Camera models & specs", &camera_switch));
+    popover_box.append(&make_switch_row("Timestamps & dates", &timestamp_switch));
+    popover_box.append(&make_switch_row("Comments & software", &comment_switch));
 
     let clean_action_btn = gtk4::Button::builder()
       .label("Clean Metadata")
@@ -484,61 +484,61 @@ impl PixieWindow {
     metadata_popover.set_child(Some(&popover_box));
     win_struct.metadata_btn.set_popover(Some(&metadata_popover));
 
-    // When the popover opens, sync checkboxes with the document's current policy
-    let gps_check_map = gps_check.clone();
-    let camera_check_map = camera_check.clone();
-    let timestamp_check_map = timestamp_check.clone();
-    let comment_check_map = comment_check.clone();
-    let all_metadata_check_map = all_metadata_check.clone();
+    // When the popover opens, sync switches with the document's current policy
+    let gps_switch_map = gps_switch.clone();
+    let camera_switch_map = camera_switch.clone();
+    let timestamp_switch_map = timestamp_switch.clone();
+    let comment_switch_map = comment_switch.clone();
+    let all_metadata_switch_map = all_metadata_switch.clone();
     let win_map = win_struct.clone();
     metadata_popover.connect_map(move |_| {
       let doc_borrow = win_map.document.borrow();
       if let Some(ref doc) = *doc_borrow {
-        all_metadata_check_map.set_active(doc.metadata_policy.remove_all_metadata);
-        gps_check_map.set_active(doc.metadata_policy.remove_gps);
-        camera_check_map.set_active(doc.metadata_policy.remove_camera_info);
-        timestamp_check_map.set_active(doc.metadata_policy.remove_timestamps);
-        comment_check_map.set_active(doc.metadata_policy.remove_comments);
+        all_metadata_switch_map.set_active(doc.metadata_policy.remove_all_metadata);
+        gps_switch_map.set_active(doc.metadata_policy.remove_gps);
+        camera_switch_map.set_active(doc.metadata_policy.remove_camera_info);
+        timestamp_switch_map.set_active(doc.metadata_policy.remove_timestamps);
+        comment_switch_map.set_active(doc.metadata_policy.remove_comments);
 
         let per_category_sensitive = !doc.metadata_policy.remove_all_metadata;
-        gps_check_map.set_sensitive(per_category_sensitive);
-        camera_check_map.set_sensitive(per_category_sensitive);
-        timestamp_check_map.set_sensitive(per_category_sensitive);
-        comment_check_map.set_sensitive(per_category_sensitive);
+        gps_switch_map.set_sensitive(per_category_sensitive);
+        camera_switch_map.set_sensitive(per_category_sensitive);
+        timestamp_switch_map.set_sensitive(per_category_sensitive);
+        comment_switch_map.set_sensitive(per_category_sensitive);
       }
     });
 
     // "Strip all" disables granular toggles, while preserving their selected state.
-    let gps_check_all = gps_check.clone();
-    let camera_check_all = camera_check.clone();
-    let timestamp_check_all = timestamp_check.clone();
-    let comment_check_all = comment_check.clone();
-    all_metadata_check.connect_toggled(move |btn| {
-      let per_category_sensitive = !btn.is_active();
-      gps_check_all.set_sensitive(per_category_sensitive);
-      camera_check_all.set_sensitive(per_category_sensitive);
-      timestamp_check_all.set_sensitive(per_category_sensitive);
-      comment_check_all.set_sensitive(per_category_sensitive);
+    let gps_switch_all = gps_switch.clone();
+    let camera_switch_all = camera_switch.clone();
+    let timestamp_switch_all = timestamp_switch.clone();
+    let comment_switch_all = comment_switch.clone();
+    all_metadata_switch.connect_active_notify(move |sw| {
+      let per_category_sensitive = !sw.is_active();
+      gps_switch_all.set_sensitive(per_category_sensitive);
+      camera_switch_all.set_sensitive(per_category_sensitive);
+      timestamp_switch_all.set_sensitive(per_category_sensitive);
+      comment_switch_all.set_sensitive(per_category_sensitive);
     });
 
     // When clicking the clean button, update the policy and toast the user
     let win_clean = win_struct.clone();
-    let all_metadata_check_clean = all_metadata_check.clone();
-    let gps_check_clean = gps_check.clone();
-    let camera_check_clean = camera_check.clone();
-    let timestamp_check_clean = timestamp_check.clone();
-    let comment_check_clean = comment_check.clone();
+    let all_metadata_switch_clean = all_metadata_switch.clone();
+    let gps_switch_clean = gps_switch.clone();
+    let camera_switch_clean = camera_switch.clone();
+    let timestamp_switch_clean = timestamp_switch.clone();
+    let comment_switch_clean = comment_switch.clone();
     let popover_clean = metadata_popover.clone();
 
     clean_action_btn.connect_clicked(move |_| {
       let mut doc_borrow = win_clean.document.borrow_mut();
       if let Some(ref mut doc) = *doc_borrow {
         let policy = pixie_core::MetadataPolicy {
-          remove_all_metadata: all_metadata_check_clean.is_active(),
-          remove_gps: gps_check_clean.is_active(),
-          remove_camera_info: camera_check_clean.is_active(),
-          remove_comments: comment_check_clean.is_active(),
-          remove_timestamps: timestamp_check_clean.is_active(),
+          remove_all_metadata: all_metadata_switch_clean.is_active(),
+          remove_gps: gps_switch_clean.is_active(),
+          remove_camera_info: camera_switch_clean.is_active(),
+          remove_comments: comment_switch_clean.is_active(),
+          remove_timestamps: timestamp_switch_clean.is_active(),
         };
         doc.metadata_policy = policy;
 
