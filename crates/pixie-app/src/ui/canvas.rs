@@ -68,28 +68,25 @@ const ZOOM_LEVELS: &[f64] = &[
 
 impl PixieCanvas {
   pub fn new() -> Self {
-    let drawing_area = gtk4::DrawingArea
-      ::builder()
+    let drawing_area = gtk4::DrawingArea::builder()
       .hexpand(true)
       .vexpand(true)
       .css_classes(["canvas-surface"])
       .build();
 
-    let state = Rc::new(
-      RefCell::new(CanvasState {
-        image: None,
-        surface: None,
-        crop_active: false,
-        crop_mode: CropMode::Free,
-        crop_portrait: false,
-        crop_rect: None,
-        rule_of_thirds: true,
-        interaction_state: CropInteractionState::Idle,
-        drag_start_rect: None,
-        drag_start_point: (0.0, 0.0),
-        zoom_factor: None,
-      })
-    );
+    let state = Rc::new(RefCell::new(CanvasState {
+      image: None,
+      surface: None,
+      crop_active: false,
+      crop_mode: CropMode::Free,
+      crop_portrait: false,
+      crop_rect: None,
+      rule_of_thirds: true,
+      interaction_state: CropInteractionState::Idle,
+      drag_start_rect: None,
+      drag_start_point: (0.0, 0.0),
+      zoom_factor: None,
+    }));
 
     let state_clone = state.clone();
     drawing_area.set_draw_func(move |area, cr, width, height| {
@@ -154,7 +151,10 @@ impl PixieCanvas {
       let (width, height) = if let Some(parent) = self.drawing_area.parent() {
         (parent.width() as f64, parent.height() as f64)
       } else {
-        (self.drawing_area.width() as f64, self.drawing_area.height() as f64)
+        (
+          self.drawing_area.width() as f64,
+          self.drawing_area.height() as f64,
+        )
       };
       let img_w = img.width() as f64;
       let img_h = img.height() as f64;
@@ -168,7 +168,8 @@ impl PixieCanvas {
 
   pub fn zoom_in(&self) -> f64 {
     let current = self.get_current_scale();
-    let new_zoom = ZOOM_LEVELS.iter()
+    let new_zoom = ZOOM_LEVELS
+      .iter()
       .copied()
       .find(|&z| z > current + 0.001)
       .unwrap_or(ZOOM_LEVELS[ZOOM_LEVELS.len() - 1]);
@@ -178,7 +179,8 @@ impl PixieCanvas {
 
   pub fn zoom_out(&self) -> f64 {
     let current = self.get_current_scale();
-    let new_zoom = ZOOM_LEVELS.iter()
+    let new_zoom = ZOOM_LEVELS
+      .iter()
       .copied()
       .rev()
       .find(|&z| z < current - 0.001)
@@ -233,7 +235,7 @@ impl PixieCanvas {
     cr: &cairo::Context,
     width: i32,
     height: i32,
-    state_rc: &Rc<RefCell<CanvasState>>
+    state_rc: &Rc<RefCell<CanvasState>>,
   ) {
     let state = state_rc.borrow();
     let (img_w, img_h) = match &state.image {
@@ -268,8 +270,16 @@ impl PixieCanvas {
       scale_w.min(scale_h).min(1.0)
     };
 
-    let ox = if img_w * scale < w_f { (w_f - img_w * scale) / 2.0 } else { 0.0 };
-    let oy = if img_h * scale < h_f { (h_f - img_h * scale) / 2.0 } else { 0.0 };
+    let ox = if img_w * scale < w_f {
+      (w_f - img_w * scale) / 2.0
+    } else {
+      0.0
+    };
+    let oy = if img_h * scale < h_f {
+      (h_f - img_h * scale) / 2.0
+    } else {
+      0.0
+    };
 
     cr.save().unwrap();
     cr.translate(ox, oy);
@@ -305,7 +315,13 @@ impl PixieCanvas {
         cr.set_source_rgba(1.0, 1.0, 1.0, 0.8);
         cr.set_line_width(2.0);
         if state.crop_mode == CropMode::Circle {
-          cr.arc(rx + rw / 2.0, ry + rh / 2.0, rw / 2.0, 0.0, 2.0 * std::f64::consts::PI);
+          cr.arc(
+            rx + rw / 2.0,
+            ry + rh / 2.0,
+            rw / 2.0,
+            0.0,
+            2.0 * std::f64::consts::PI,
+          );
         } else {
           cr.rectangle(rx, ry, rw, rh);
         }
@@ -391,8 +407,16 @@ impl PixieCanvas {
           let scale_h = h_f / img_h;
           scale_w.min(scale_h).min(1.0)
         };
-        let ox = if img_w * scale < w_f { (w_f - img_w * scale) / 2.0 } else { 0.0 };
-        let oy = if img_h * scale < h_f { (h_f - img_h * scale) / 2.0 } else { 0.0 };
+        let ox = if img_w * scale < w_f {
+          (w_f - img_w * scale) / 2.0
+        } else {
+          0.0
+        };
+        let oy = if img_h * scale < h_f {
+          (h_f - img_h * scale) / 2.0
+        } else {
+          0.0
+        };
 
         let rx = ox + f64::from(rect.x) * scale;
         let ry = oy + f64::from(rect.y) * scale;
@@ -409,28 +433,24 @@ impl PixieCanvas {
           Some(CropHandle::BottomLeft)
         } else if (x - (rx + rw)).abs() < hs && (y - (ry + rh)).abs() < hs {
           Some(CropHandle::BottomRight)
-        } else if
-          state.crop_mode != CropMode::Circle &&
-          (x - (rx + rw / 2.0)).abs() < hs &&
-          (y - ry).abs() < hs
+        } else if state.crop_mode != CropMode::Circle
+          && (x - (rx + rw / 2.0)).abs() < hs
+          && (y - ry).abs() < hs
         {
           Some(CropHandle::Top)
-        } else if
-          state.crop_mode != CropMode::Circle &&
-          (x - (rx + rw / 2.0)).abs() < hs &&
-          (y - (ry + rh)).abs() < hs
+        } else if state.crop_mode != CropMode::Circle
+          && (x - (rx + rw / 2.0)).abs() < hs
+          && (y - (ry + rh)).abs() < hs
         {
           Some(CropHandle::Bottom)
-        } else if
-          state.crop_mode != CropMode::Circle &&
-          (x - rx).abs() < hs &&
-          (y - (ry + rh / 2.0)).abs() < hs
+        } else if state.crop_mode != CropMode::Circle
+          && (x - rx).abs() < hs
+          && (y - (ry + rh / 2.0)).abs() < hs
         {
           Some(CropHandle::Left)
-        } else if
-          state.crop_mode != CropMode::Circle &&
-          (x - (rx + rw)).abs() < hs &&
-          (y - (ry + rh / 2.0)).abs() < hs
+        } else if state.crop_mode != CropMode::Circle
+          && (x - (rx + rw)).abs() < hs
+          && (y - (ry + rh / 2.0)).abs() < hs
         {
           Some(CropHandle::Right)
         } else {
@@ -449,8 +469,8 @@ impl PixieCanvas {
         } else {
           state.interaction_state = CropInteractionState::Creating;
         }
-      })
-    );
+      }
+    ));
 
     let state_clone2 = self.state.clone();
     let area_clone2 = self.drawing_area.clone();
@@ -617,7 +637,7 @@ pub(super) fn apply_ratio_to_rect(
   mode: CropMode,
   img_w: u32,
   img_h: u32,
-  portrait: bool
+  portrait: bool,
 ) -> PixelRect {
   let base_ratio = match mode {
     CropMode::Free => {
