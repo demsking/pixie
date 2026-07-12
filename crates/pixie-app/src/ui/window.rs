@@ -1444,6 +1444,17 @@ impl PixieWindow {
         self.progress_bar.set_visible(false);
         self.stack.set_visible_child_name("canvas");
 
+        self.canvas.set_zoom(None);
+        self.update_zoom_badge();
+        if let Err(err) = self.canvas.set_image(img.clone()) {
+          self.show_error_dialog(&gettext_replace(
+            "Failed to render image: {error}",
+            &[("error", err)],
+          ));
+          self.stack.set_visible_child_name("placeholder");
+          return;
+        }
+
         let doc = PixieDocument::new(img.clone(), format);
         self.undo_btn.set_sensitive(doc.history().can_undo());
         self.redo_btn.set_sensitive(doc.history().can_redo());
@@ -1453,10 +1464,6 @@ impl PixieWindow {
         self.saved_history_index.set(Some(0));
         self.force_close.set(false);
         self.clear_active_toasts();
-
-        self.canvas.set_zoom(None);
-        self.update_zoom_badge();
-        self.canvas.set_image(img.clone());
 
         if self.resize_to_image_on_load.get() {
           self.resize_to_image_on_load.set(false);
@@ -1530,6 +1537,15 @@ impl PixieWindow {
       WorkerOutput::OperationApplied { op, img } => {
         self.progress_bar.set_visible(false);
 
+        if let Err(err) = self.canvas.set_image(img.clone()) {
+          self.show_error_dialog(&gettext_replace(
+            "Failed to render resized image: {error}",
+            &[("error", err)],
+          ));
+          self.enable_sidebar_toggles(true);
+          return;
+        }
+
         let mut doc_borrow = self.document.borrow_mut();
         if let Some(ref mut doc) = *doc_borrow {
           doc.commit_rendered_operation(op, img.clone());
@@ -1537,8 +1553,6 @@ impl PixieWindow {
           self.redo_btn.set_sensitive(doc.history().can_redo());
         }
         drop(doc_borrow);
-
-        self.canvas.set_image(img);
         self.enable_sidebar_toggles(true);
         self.update_properties_popover(false);
         self.refresh_window_title();
@@ -1813,10 +1827,13 @@ impl PixieWindow {
       if doc.undo() {
         match doc.current_image() {
           Ok(current) => {
-            self.canvas.set_image(current);
-            self.undo_btn.set_sensitive(doc.history().can_undo());
-            self.redo_btn.set_sensitive(doc.history().can_redo());
-            did_undo = true;
+            if let Err(e) = self.canvas.set_image(current) {
+              undo_error = Some(pixie_core::CoreError::Internal(e));
+            } else {
+              self.undo_btn.set_sensitive(doc.history().can_undo());
+              self.redo_btn.set_sensitive(doc.history().can_redo());
+              did_undo = true;
+            }
           }
           Err(e) => undo_error = Some(e),
         }
@@ -1846,10 +1863,13 @@ impl PixieWindow {
       if doc.redo() {
         match doc.current_image() {
           Ok(current) => {
-            self.canvas.set_image(current);
-            self.undo_btn.set_sensitive(doc.history().can_undo());
-            self.redo_btn.set_sensitive(doc.history().can_redo());
-            did_redo = true;
+            if let Err(e) = self.canvas.set_image(current) {
+              redo_error = Some(pixie_core::CoreError::Internal(e));
+            } else {
+              self.undo_btn.set_sensitive(doc.history().can_undo());
+              self.redo_btn.set_sensitive(doc.history().can_redo());
+              did_redo = true;
+            }
           }
           Err(e) => redo_error = Some(e),
         }

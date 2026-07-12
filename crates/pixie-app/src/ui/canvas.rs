@@ -101,8 +101,8 @@ impl PixieCanvas {
     canvas
   }
 
-  pub fn set_image(&self, img: DynamicImage) {
-    let surface = dynamic_image_to_surface(&img);
+  pub fn set_image(&self, img: DynamicImage) -> Result<(), String> {
+    let surface = dynamic_image_to_surface(&img)?;
     let mut state = self.state.borrow_mut();
     state.image = Some(img);
     state.surface = Some(surface);
@@ -112,6 +112,7 @@ impl PixieCanvas {
     self.update_size();
     self.drawing_area.queue_resize();
     self.drawing_area.queue_draw();
+    Ok(())
   }
 
   pub fn set_zoom(&self, zoom: Option<f64>) {
@@ -740,12 +741,15 @@ fn update_canvas_cursor(area: &gtk4::DrawingArea, state: &CanvasState, x: f64, y
 }
 
 // Helper to convert dynamic image to Cairo surface
-fn dynamic_image_to_surface(img: &DynamicImage) -> cairo::ImageSurface {
+fn dynamic_image_to_surface(img: &DynamicImage) -> Result<cairo::ImageSurface, String> {
   let rgba = img.to_rgba8();
   let (w, h) = (rgba.width() as i32, rgba.height() as i32);
-  let mut surface = cairo::ImageSurface::create(cairo::Format::ARgb32, w, h).unwrap();
+  let mut surface = cairo::ImageSurface::create(cairo::Format::ARgb32, w, h)
+    .map_err(|e| format!("Failed to create drawing surface for {w}x{h} image: {e}"))?;
   {
-    let mut data = surface.data().unwrap();
+    let mut data = surface
+      .data()
+      .map_err(|e| format!("Failed to access drawing surface memory: {e}"))?;
     let bytes = rgba.as_raw();
     for i in 0..(w * h) as usize {
       let r = bytes[i * 4];
@@ -762,7 +766,7 @@ fn dynamic_image_to_surface(img: &DynamicImage) -> cairo::ImageSurface {
       data[i * 4 + 3] = a;
     }
   }
-  surface
+  Ok(surface)
 }
 
 // Adjusts the width/height of a rect to match the aspect ratio of the selected CropMode
