@@ -752,10 +752,13 @@ fn dynamic_image_to_surface(img: &DynamicImage) -> cairo::ImageSurface {
       let g = bytes[i * 4 + 1];
       let b = bytes[i * 4 + 2];
       let a = bytes[i * 4 + 3];
-      // Cairo Argb32 is BGRA in little-endian
-      data[i * 4] = b;
-      data[i * 4 + 1] = g;
-      data[i * 4 + 2] = r;
+      // Cairo's ARgb32 expects premultiplied alpha in BGRA byte order.
+      let pb = ((u16::from(b) * u16::from(a) + 127) / 255) as u8;
+      let pg = ((u16::from(g) * u16::from(a) + 127) / 255) as u8;
+      let pr = ((u16::from(r) * u16::from(a) + 127) / 255) as u8;
+      data[i * 4] = pb;
+      data[i * 4 + 1] = pg;
+      data[i * 4 + 2] = pr;
       data[i * 4 + 3] = a;
     }
   }
