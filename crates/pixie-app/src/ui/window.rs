@@ -52,6 +52,8 @@ pub struct PixieWindow {
   mirror_btn: gtk4::Button,
   flip_btn: gtk4::Button,
   crop_actions_bar: gtk4::Box,
+  floating_nav_bar: gtk4::Box,
+  floating_tool_bar: gtk4::Box,
   undo_btn: gtk4::Button,
   redo_btn: gtk4::Button,
   save_btn: gtk4::Button,
@@ -412,6 +414,8 @@ impl PixieWindow {
       mirror_btn: mirror_btn.clone(),
       flip_btn: flip_btn.clone(),
       crop_actions_bar: crop_actions_bar.clone(),
+      floating_nav_bar: nav_bar.clone(),
+      floating_tool_bar: tool_bar.clone(),
       undo_btn: undo_btn.clone(),
       redo_btn: redo_btn.clone(),
       save_btn: save_btn.clone(),
@@ -700,10 +704,13 @@ impl PixieWindow {
     crop_btn.connect_toggled(move |btn| {
       if btn.is_active() {
         resize_btn_clone.set_active(false);
+        win_cl6.set_floating_controls_visible(true);
         win_cl6.crop_actions_bar.set_visible(false);
         win_cl6.show_crop_tool();
       } else {
+        win_cl6.canvas.set_crop_active(false);
         win_cl6.crop_actions_bar.set_visible(false);
+        win_cl6.set_floating_controls_visible(true);
         win_cl6.close_sidebar_if_inactive();
       }
     });
@@ -723,10 +730,33 @@ impl PixieWindow {
     // Close sidebar when the canvas area is clicked.
     let click_close_sidebar = gtk4::GestureClick::new();
     let win_canvas_click = win_struct.clone();
-    click_close_sidebar.connect_pressed(move |_, _, _, _| {
+    click_close_sidebar.connect_pressed(move |_, n_press, x, y| {
+      if n_press == 2
+        && win_canvas_click.crop_btn.is_active()
+        && win_canvas_click.canvas.state.borrow().crop_active
+      {
+        let state = win_canvas_click.canvas.state.borrow();
+        if let Some(rect) = state.crop_rect {
+          if let Some((scale, ox, oy, _, _)) =
+            PixieCanvas::get_layout_scale_offset(&win_canvas_click.canvas.drawing_area, &state)
+          {
+            let rx = ox + f64::from(rect.x) * scale;
+            let ry = oy + f64::from(rect.y) * scale;
+            let rw = f64::from(rect.width) * scale;
+            let rh = f64::from(rect.height) * scale;
+
+            if x >= rx && x <= rx + rw && y >= ry && y <= ry + rh {
+              drop(state);
+              win_canvas_click.apply_crop();
+              return;
+            }
+          }
+        }
+      }
+
       if win_canvas_click.active_tool_popover.borrow().is_some() {
         win_canvas_click.close_tool_popover();
-        // Keep crop mode active if crop tool is selected.
+        // Crop mode only starts after pressing "Start Cropping".
         if !win_canvas_click.crop_btn.is_active() {
           win_canvas_click.canvas.set_crop_active(false);
         }
@@ -734,39 +764,15 @@ impl PixieWindow {
     });
     canvas.drawing_area.add_controller(click_close_sidebar);
 
-    // Show floating crop actions once user finishes a crop drag interaction.
-    let crop_drag_done = gtk4::GestureDrag::new();
-    let win_crop_drag_done = win_struct.clone();
-    crop_drag_done.connect_drag_end(move |_, _, _| {
-      if win_crop_drag_done.crop_btn.is_active() {
-        win_crop_drag_done.crop_actions_bar.set_visible(true);
-      }
-    });
-    canvas.drawing_area.add_controller(crop_drag_done);
-
     // Floating crop action buttons.
     let win_crop_cancel = win_struct.clone();
     crop_cancel_btn.connect_clicked(move |_| {
-      win_crop_cancel.crop_actions_bar.set_visible(false);
-      win_crop_cancel.crop_btn.set_active(false);
+      win_crop_cancel.cancel_crop();
     });
 
     let win_crop_apply = win_struct.clone();
     crop_apply_btn.connect_clicked(move |_| {
-      let state = win_crop_apply.canvas.state.borrow();
-      if let Some(rect) = state.crop_rect {
-        let op = if state.crop_mode == super::canvas::CropMode::Circle {
-          ImageOperation::CircleMask(CircleMaskOperation::new(rect))
-        } else {
-          ImageOperation::Crop(CropOperation::new(rect))
-        };
-        drop(state);
-        win_crop_apply.apply_image_operation(op);
-      } else {
-        drop(state);
-      }
-      win_crop_apply.crop_actions_bar.set_visible(false);
-      win_crop_apply.crop_btn.set_active(false);
+      win_crop_apply.apply_crop();
     });
 
     // Drag & Drop
@@ -786,10 +792,19 @@ impl PixieWindow {
     });
     window.add_controller(drop_target);
 
-    // Key controller to handle ALT key for reverse rotation
+    // Key controller to handle shortcuts & ALT key for reverse rotation
     let key_controller = gtk4::EventControllerKey::new();
     let win_key = win_struct.clone();
     key_controller.connect_key_pressed(move |_controller, key, _keycode, _state| {
+      if win_key.crop_btn.is_active() && win_key.canvas.state.borrow().crop_active {
+        if key == gtk4::gdk::Key::Return || key == gtk4::gdk::Key::KP_Enter {
+          win_key.apply_crop();
+          return glib::Propagation::Stop;
+        } else if key == gtk4::gdk::Key::Escape {
+          win_key.cancel_crop();
+          return glib::Propagation::Stop;
+        }
+      }
       if key == gtk4::gdk::Key::Alt_L || key == gtk4::gdk::Key::Alt_R {
         win_key.alt_pressed.set(true);
         win_key
@@ -1230,6 +1245,11 @@ impl PixieWindow {
     self.flip_btn.set_sensitive(enable);
   }
 
+  fn set_floating_controls_visible(&self, visible: bool) {
+    self.floating_nav_bar.set_visible(visible);
+    self.floating_tool_bar.set_visible(visible);
+  }
+
   fn apply_image_operation(&self, op: ImageOperation) {
     let mut doc_borrow = self.document.borrow_mut();
     if let Some(ref mut doc) = *doc_borrow {
@@ -1457,24 +1477,52 @@ impl PixieWindow {
     }
   }
 
-  fn show_crop_tool(self: &Rc<Self>) {
-    self.canvas.set_crop_active(true);
-    self.close_tool_popover();
+  pub fn apply_crop(&self) {
+    let state = self.canvas.state.borrow();
+    if let Some(rect) = state.crop_rect {
+      let op = if state.crop_mode == super::canvas::CropMode::Circle {
+        ImageOperation::CircleMask(CircleMaskOperation::new(rect))
+      } else {
+        ImageOperation::Crop(CropOperation::new(rect))
+      };
+      drop(state);
+      self.apply_image_operation(op);
+    } else {
+      drop(state);
+    }
+    self.set_floating_controls_visible(true);
+    self.crop_actions_bar.set_visible(false);
+    self.crop_btn.set_active(false);
+  }
 
-    let self_cl = self.clone();
-    let view = CropToolView::new(
-      &self.canvas,
-      move |op| {
-        self_cl.apply_image_operation(op);
-      },
-      move || {},
-    );
+  pub fn cancel_crop(&self) {
+    self.set_floating_controls_visible(true);
+    self.crop_actions_bar.set_visible(false);
+    self.crop_btn.set_active(false);
+  }
+
+  fn show_crop_tool(self: &Rc<Self>) {
+    self.canvas.set_crop_active(false);
+    self.crop_actions_bar.set_visible(false);
+    self.close_tool_popover();
 
     let popover = gtk4::Popover::builder()
       .autohide(true)
       .has_arrow(true)
       .position(gtk4::PositionType::Top)
       .build();
+
+    let self_start = self.clone();
+    let popover_weak = popover.downgrade();
+    let view = CropToolView::new(&self.canvas, move || {
+      self_start.canvas.set_crop_active(true);
+      self_start.crop_actions_bar.set_visible(true);
+      self_start.set_floating_controls_visible(false);
+      if let Some(popover) = popover_weak.upgrade() {
+        popover.popdown();
+      }
+    });
+
     popover.set_child(Some(&view.container));
     popover.set_parent(&self.crop_btn);
 

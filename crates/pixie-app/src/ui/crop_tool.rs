@@ -7,10 +7,7 @@ pub struct CropToolView {
 }
 
 impl CropToolView {
-  pub fn new<F>(canvas: &PixieCanvas, _on_apply: F, _on_cancel: impl Fn() + 'static) -> Self
-  where
-    F: Fn(pixie_core::ImageOperation) + 'static,
-  {
+  pub fn new(canvas: &PixieCanvas, on_start_cropping: impl Fn() + 'static) -> Self {
     let container = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Vertical)
       .spacing(12)
@@ -203,6 +200,16 @@ impl CropToolView {
       drop(state);
       area_portrait.queue_draw();
     });
+
+    let start_cropping_btn = gtk4::Button::builder()
+      .label("Start Cropping")
+      .hexpand(true)
+      .css_classes(["suggested-action", "pill"])
+      .build();
+    start_cropping_btn.connect_clicked(move |_| {
+      on_start_cropping();
+    });
+    container.append(&start_cropping_btn);
 
     Self { container }
   }

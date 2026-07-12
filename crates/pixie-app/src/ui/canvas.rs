@@ -203,6 +203,7 @@ impl PixieCanvas {
       }
     }
     drop(state);
+    self.drawing_area.set_cursor(None);
     self.drawing_area.queue_draw();
   }
 
@@ -230,36 +231,26 @@ impl PixieCanvas {
     self.drawing_area.queue_draw();
   }
 
-  fn draw(
-    _area: &gtk4::DrawingArea,
-    cr: &cairo::Context,
-    width: i32,
-    height: i32,
-    state_rc: &Rc<RefCell<CanvasState>>,
-  ) {
-    let state = state_rc.borrow();
-    let (img_w, img_h) = match &state.image {
-      Some(img) => (img.width() as f64, img.height() as f64),
-      None => {
-        return;
-      }
-    };
+  pub fn get_layout_scale_offset(
+    area: &gtk4::DrawingArea,
+    state: &CanvasState,
+  ) -> Option<(f64, f64, f64, f64, f64)> {
+    let img = state.image.as_ref()?;
+    let img_w = img.width() as f64;
+    let img_h = img.height() as f64;
 
-    let surface = match &state.surface {
-      Some(s) => s,
-      None => {
-        return;
-      }
+    let (parent_w, parent_h) = if let Some(parent) = area.parent() {
+      (parent.width() as f64, parent.height() as f64)
+    } else {
+      (area.width() as f64, area.height() as f64)
     };
+    let area_w = area.width() as f64;
+    let area_h = area.height() as f64;
 
     let (w_f, h_f) = if state.zoom_factor.is_none() {
-      if let Some(parent) = _area.parent() {
-        (parent.width() as f64, parent.height() as f64)
-      } else {
-        (f64::from(width), f64::from(height))
-      }
+      (parent_w, parent_h)
     } else {
-      (f64::from(width), f64::from(height))
+      (area_w, area_h)
     };
 
     let scale = if let Some(zoom) = state.zoom_factor {
@@ -279,6 +270,29 @@ impl PixieCanvas {
       (h_f - img_h * scale) / 2.0
     } else {
       0.0
+    };
+
+    Some((scale, ox, oy, img_w, img_h))
+  }
+
+  fn draw(
+    _area: &gtk4::DrawingArea,
+    cr: &cairo::Context,
+    _width: i32,
+    _height: i32,
+    state_rc: &Rc<RefCell<CanvasState>>,
+  ) {
+    let state = state_rc.borrow();
+    let surface = match &state.surface {
+      Some(s) => s,
+      None => {
+        return;
+      }
+    };
+
+    let (scale, ox, oy, img_w, img_h) = match Self::get_layout_scale_offset(_area, &state) {
+      Some(layout) => layout,
+      None => return,
     };
 
     cr.save().unwrap();
@@ -312,7 +326,24 @@ impl PixieCanvas {
         cr.fill().unwrap();
 
         // 2. Draw crop border
-        cr.set_source_rgba(1.0, 1.0, 1.0, 0.8);
+        // First draw a dark contrast shadow line
+        cr.set_source_rgba(0.0, 0.0, 0.0, 0.5);
+        cr.set_line_width(4.0);
+        if state.crop_mode == CropMode::Circle {
+          cr.arc(
+            rx + rw / 2.0,
+            ry + rh / 2.0,
+            rw / 2.0,
+            0.0,
+            2.0 * std::f64::consts::PI,
+          );
+        } else {
+          cr.rectangle(rx, ry, rw, rh);
+        }
+        cr.stroke().unwrap();
+
+        // Draw the main white border on top
+        cr.set_source_rgba(1.0, 1.0, 1.0, 0.9);
         cr.set_line_width(2.0);
         if state.crop_mode == CropMode::Circle {
           cr.arc(
@@ -329,27 +360,45 @@ impl PixieCanvas {
 
         // 3. Draw Rule of Thirds grid
         if state.rule_of_thirds && state.crop_mode != CropMode::Circle {
-          cr.set_source_rgba(1.0, 1.0, 1.0, 0.3);
+          let draw_grid_lines = |ctx: &cairo::Context| {
+            // Vertical lines
+            ctx.move_to(rx + rw / 3.0, ry);
+            ctx.line_to(rx + rw / 3.0, ry + rh);
+            ctx.move_to(rx + (2.0 * rw) / 3.0, ry);
+            ctx.line_to(rx + (2.0 * rw) / 3.0, ry + rh);
+            // Horizontal lines
+            ctx.move_to(rx, ry + rh / 3.0);
+            ctx.line_to(rx + rw, ry + rh / 3.0);
+            ctx.move_to(rx, ry + (2.0 * rh) / 3.0);
+            ctx.line_to(rx + rw, ry + (2.0 * rh) / 3.0);
+          };
+
+          // Draw dark grid lines first for shadow/contrast
+          cr.set_source_rgba(0.0, 0.0, 0.0, 0.3);
+          cr.set_line_width(3.0);
+          draw_grid_lines(cr);
+          cr.stroke().unwrap();
+
+          // Draw crisp white grid lines
+          cr.set_source_rgba(1.0, 1.0, 1.0, 0.6);
           cr.set_line_width(1.0);
-          // Vertical lines
-          cr.move_to(rx + rw / 3.0, ry);
-          cr.line_to(rx + rw / 3.0, ry + rh);
-          cr.move_to(rx + (2.0 * rw) / 3.0, ry);
-          cr.line_to(rx + (2.0 * rw) / 3.0, ry + rh);
-          // Horizontal lines
-          cr.move_to(rx, ry + rh / 3.0);
-          cr.line_to(rx + rw, ry + rh / 3.0);
-          cr.move_to(rx, ry + (2.0 * rh) / 3.0);
-          cr.line_to(rx + rw, ry + (2.0 * rh) / 3.0);
+          draw_grid_lines(cr);
           cr.stroke().unwrap();
         }
 
-        // 4. Draw handles
-        cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
-        let hs = 8.0; // handle size
+        // 4. Draw handles with high-contrast outlines
+        let hs = 10.0; // handle size
         let draw_handle = |ctx: &cairo::Context, hx: f64, hy: f64| {
+          // White fill
+          ctx.set_source_rgba(1.0, 1.0, 1.0, 1.0);
           ctx.rectangle(hx - hs / 2.0, hy - hs / 2.0, hs, hs);
           ctx.fill().unwrap();
+
+          // Dark stroke
+          ctx.set_source_rgba(0.1, 0.1, 0.1, 0.8);
+          ctx.set_line_width(1.5);
+          ctx.rectangle(hx - hs / 2.0, hy - hs / 2.0, hs, hs);
+          ctx.stroke().unwrap();
         };
 
         draw_handle(cr, rx, ry); // TL
@@ -383,39 +432,10 @@ impl PixieCanvas {
             return;
           }
         };
-        let (img_w, img_h) = match &state.image {
-          Some(img) => (img.width() as f64, img.height() as f64),
-          None => {
-            return;
-          }
-        };
 
-        let (w_f, h_f) = if state.zoom_factor.is_none() {
-          if let Some(parent) = area_clone.parent() {
-            (parent.width() as f64, parent.height() as f64)
-          } else {
-            (area_clone.width() as f64, area_clone.height() as f64)
-          }
-        } else {
-          (area_clone.width() as f64, area_clone.height() as f64)
-        };
-
-        let scale = if let Some(zoom) = state.zoom_factor {
-          zoom
-        } else {
-          let scale_w = w_f / img_w;
-          let scale_h = h_f / img_h;
-          scale_w.min(scale_h).min(1.0)
-        };
-        let ox = if img_w * scale < w_f {
-          (w_f - img_w * scale) / 2.0
-        } else {
-          0.0
-        };
-        let oy = if img_h * scale < h_f {
-          (h_f - img_h * scale) / 2.0
-        } else {
-          0.0
+        let (scale, ox, oy, _, _) = match Self::get_layout_scale_offset(&area_clone, &state) {
+          Some(layout) => layout,
+          None => return,
         };
 
         let rx = ox + f64::from(rect.x) * scale;
@@ -469,6 +489,8 @@ impl PixieCanvas {
         } else {
           state.interaction_state = CropInteractionState::Creating;
         }
+
+        update_canvas_cursor(&area_clone, &state, x, y);
       }
     ));
 
@@ -489,22 +511,9 @@ impl PixieCanvas {
         }
       };
 
-      let (w_f, h_f) = if state.zoom_factor.is_none() {
-        if let Some(parent) = area_clone2.parent() {
-          (parent.width() as f64, parent.height() as f64)
-        } else {
-          (area_clone2.width() as f64, area_clone2.height() as f64)
-        }
-      } else {
-        (area_clone2.width() as f64, area_clone2.height() as f64)
-      };
-
-      let scale = if let Some(zoom) = state.zoom_factor {
-        zoom
-      } else {
-        let scale_w = w_f / (img_w as f64);
-        let scale_h = h_f / (img_h as f64);
-        scale_w.min(scale_h).min(1.0)
+      let (scale, _, _, _, _) = match Self::get_layout_scale_offset(&area_clone2, &state) {
+        Some(layout) => layout,
+        None => return,
       };
 
       // Convert offset from widget scale to original image coordinates
@@ -600,11 +609,133 @@ impl PixieCanvas {
       }
 
       state.crop_rect = Some(rect);
+
+      // Update cursor during drag
+      let start_point = state.drag_start_point;
+      let x = start_point.0 + offset_x;
+      let y = start_point.1 + offset_y;
+      update_canvas_cursor(&area_clone2, &state, x, y);
+
       drop(state);
       area_clone2.queue_draw();
     });
 
+    let state_clone3 = self.state.clone();
+    let area_clone3 = self.drawing_area.clone();
+    drag.connect_drag_end(move |_, offset_x, offset_y| {
+      let mut state = state_clone3.borrow_mut();
+      state.interaction_state = CropInteractionState::Idle;
+      state.drag_start_rect = None;
+
+      let start_point = state.drag_start_point;
+      let x = start_point.0 + offset_x;
+      let y = start_point.1 + offset_y;
+      update_canvas_cursor(&area_clone3, &state, x, y);
+
+      drop(state);
+      area_clone3.queue_draw();
+    });
+
     self.drawing_area.add_controller(drag);
+
+    // Setup mouse hover motion events to update cursor
+    let motion = gtk4::EventControllerMotion::new();
+    let state_motion = self.state.clone();
+    let area_motion = self.drawing_area.clone();
+    motion.connect_motion(move |_controller, x, y| {
+      let state = state_motion.borrow();
+      update_canvas_cursor(&area_motion, &state, x, y);
+    });
+
+    let area_leave = self.drawing_area.clone();
+    motion.connect_leave(move |_controller| {
+      area_leave.set_cursor(None);
+    });
+
+    self.drawing_area.add_controller(motion);
+  }
+}
+
+// Helper to dynamically update the mouse cursor during crop interaction or hover
+fn update_canvas_cursor(area: &gtk4::DrawingArea, state: &CanvasState, x: f64, y: f64) {
+  if !state.crop_active {
+    area.set_cursor(None);
+    return;
+  }
+
+  let cursor_name = match state.interaction_state {
+    CropInteractionState::Creating => Some("crosshair"),
+    CropInteractionState::Moving => Some("move"),
+    CropInteractionState::Resizing(handle) => match handle {
+      CropHandle::TopLeft => Some("nw-resize"),
+      CropHandle::Top => Some("n-resize"),
+      CropHandle::TopRight => Some("ne-resize"),
+      CropHandle::Right => Some("e-resize"),
+      CropHandle::BottomRight => Some("se-resize"),
+      CropHandle::Bottom => Some("s-resize"),
+      CropHandle::BottomLeft => Some("sw-resize"),
+      CropHandle::Left => Some("w-resize"),
+    },
+    CropInteractionState::Idle | CropInteractionState::Confirming => {
+      if let Some(rect) = state.crop_rect {
+        if let Some((scale, ox, oy, _, _)) = PixieCanvas::get_layout_scale_offset(area, state) {
+          let rx = ox + f64::from(rect.x) * scale;
+          let ry = oy + f64::from(rect.y) * scale;
+          let rw = f64::from(rect.width) * scale;
+          let rh = f64::from(rect.height) * scale;
+
+          let hs = 15.0; // handle size tolerance
+
+          if (x - rx).abs() < hs && (y - ry).abs() < hs {
+            Some("nw-resize")
+          } else if (x - (rx + rw)).abs() < hs && (y - ry).abs() < hs {
+            Some("ne-resize")
+          } else if (x - rx).abs() < hs && (y - (ry + rh)).abs() < hs {
+            Some("sw-resize")
+          } else if (x - (rx + rw)).abs() < hs && (y - (ry + rh)).abs() < hs {
+            Some("se-resize")
+          } else if state.crop_mode != CropMode::Circle
+            && (x - (rx + rw / 2.0)).abs() < hs
+            && (y - ry).abs() < hs
+          {
+            Some("n-resize")
+          } else if state.crop_mode != CropMode::Circle
+            && (x - (rx + rw / 2.0)).abs() < hs
+            && (y - (ry + rh)).abs() < hs
+          {
+            Some("s-resize")
+          } else if state.crop_mode != CropMode::Circle
+            && (x - rx).abs() < hs
+            && (y - (ry + rh / 2.0)).abs() < hs
+          {
+            Some("w-resize")
+          } else if state.crop_mode != CropMode::Circle
+            && (x - (rx + rw)).abs() < hs
+            && (y - (ry + rh / 2.0)).abs() < hs
+          {
+            Some("e-resize")
+          } else if x >= rx && x <= rx + rw && y >= ry && y <= ry + rh {
+            Some("move")
+          } else {
+            Some("crosshair")
+          }
+        } else {
+          None
+        }
+      } else {
+        None
+      }
+    }
+  };
+
+  if let Some(name) = cursor_name {
+    if let Some(cursor) = gtk4::gdk::Cursor::from_name(name, None) {
+      area.set_cursor(Some(&cursor));
+    } else {
+      area.set_cursor(None);
+    }
+  } else {
+    area.set_cursor(None);
   }
 }
 
