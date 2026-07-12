@@ -62,6 +62,7 @@ pub struct PixieWindow {
   nav_next_btn: gtk4::Button,
   zoom_badge_btn: gtk4::Button,
   properties_btn: gtk4::MenuButton,
+  save_dropdown_btn: gtk4::MenuButton,
   properties_folder_label: gtk4::Label,
   properties_size_label: gtk4::Label,
   properties_format_label: gtk4::Label,
@@ -74,12 +75,15 @@ pub struct PixieWindow {
 
 impl PixieWindow {
   fn refresh_window_title(&self) {
+    let has_changes = self.has_unsaved_changes();
+    self.save_dropdown_btn.set_visible(has_changes);
+
     let title = if let Some(path) = self.current_file_path.borrow().as_ref() {
       let file_name = path
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| "Unknown".to_string());
-      let dirty_prefix = if self.has_unsaved_changes() { "* " } else { "" };
+      let dirty_prefix = if has_changes { "* " } else { "" };
       format!("{dirty_prefix}{file_name} — Pixie")
     } else {
       "Pixie".to_string()
@@ -222,8 +226,6 @@ impl PixieWindow {
 
     // Section 3: save/export ops
     let save_section = gio::Menu::new();
-    save_section.append(Some("Save"), Some("win.save"));
-    save_section.append(Some("Save As…"), Some("win.save-as"));
     save_section.append(Some("Convert…"), Some("win.export"));
     app_menu.append_section(None, &save_section);
 
@@ -395,6 +397,20 @@ impl PixieWindow {
       .popover(&properties_popover)
       .build();
     header_bar.pack_end(&properties_btn);
+
+    let save_dropdown_menu = gio::Menu::new();
+    save_dropdown_menu.append(Some("Save As…"), Some("win.save-as"));
+    save_dropdown_menu.append(Some("Replace Original Image"), Some("win.save"));
+
+    let save_dropdown_btn = gtk4::MenuButton::builder()
+      .icon_name("document-save-symbolic")
+      .label("Save")
+      .tooltip_text("Save Changes")
+      .visible(false)
+      .menu_model(&save_dropdown_menu)
+      .css_classes(["save-dropdown-btn"])
+      .build();
+    header_bar.pack_end(&save_dropdown_btn);
 
     let zoom_badge_btn = gtk4::Button::builder()
       .label("100%")
@@ -593,6 +609,7 @@ impl PixieWindow {
       nav_next_btn: nav_next_btn.clone(),
       zoom_badge_btn: zoom_badge_btn.clone(),
       properties_btn: properties_btn.clone(),
+      save_dropdown_btn: save_dropdown_btn.clone(),
       properties_folder_label: properties_folder_label.clone(),
       properties_size_label: properties_size_label.clone(),
       properties_format_label: properties_format_label.clone(),

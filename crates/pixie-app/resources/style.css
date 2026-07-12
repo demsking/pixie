@@ -1,3 +1,11 @@
+/* Save Button Styling */
+.save-dropdown-btn > button {
+  background-color: var(--accent-bg-color);
+  border-radius: 99px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
 /* Uniform dark canvas background */
 .canvas-surface {
   background-image: none;
