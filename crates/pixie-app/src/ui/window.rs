@@ -61,6 +61,13 @@ pub struct PixieWindow {
   nav_prev_btn: gtk4::Button,
   nav_next_btn: gtk4::Button,
   zoom_badge_btn: gtk4::Button,
+  properties_btn: gtk4::MenuButton,
+  properties_folder_label: gtk4::Label,
+  properties_size_label: gtk4::Label,
+  properties_format_label: gtk4::Label,
+  properties_file_size_label: gtk4::Label,
+  properties_created_label: gtk4::Label,
+  properties_modified_label: gtk4::Label,
   scrolled: gtk4::ScrolledWindow,
   stack: gtk4::Stack,
 }
@@ -237,6 +244,157 @@ impl PixieWindow {
       .menu_model(&app_menu)
       .build();
     header_bar.pack_end(&menu_btn);
+
+    // ── Image Information Popover ───────────────────────────────────────
+    let properties_folder_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_size_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_format_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_file_size_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_created_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_modified_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_popover = gtk4::Popover::builder()
+      .autohide(true)
+      .has_arrow(true)
+      .position(gtk4::PositionType::Bottom)
+      .build();
+
+    let properties_popover_box = gtk4::Box::builder()
+      .orientation(gtk4::Orientation::Vertical)
+      .spacing(12)
+      .margin_top(12)
+      .margin_bottom(12)
+      .margin_start(12)
+      .margin_end(12)
+      .width_request(260)
+      .build();
+
+    // Group 1: Folder
+    let listbox1 = gtk4::ListBox::builder()
+      .selection_mode(gtk4::SelectionMode::None)
+      .css_classes(["boxed-list"])
+      .build();
+
+    let folder_row = gtk4::ListBoxRow::builder()
+      .activatable(false)
+      .selectable(false)
+      .build();
+    let folder_hbox = gtk4::Box::builder()
+      .orientation(gtk4::Orientation::Horizontal)
+      .spacing(8)
+      .margin_top(8)
+      .margin_bottom(8)
+      .margin_start(12)
+      .margin_end(12)
+      .build();
+    let folder_vbox = gtk4::Box::builder()
+      .orientation(gtk4::Orientation::Vertical)
+      .spacing(2)
+      .hexpand(true)
+      .build();
+    let folder_title_lbl = gtk4::Label::builder()
+      .label("Folder")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-title"])
+      .build();
+    folder_vbox.append(&folder_title_lbl);
+    folder_vbox.append(&properties_folder_label);
+
+    let properties_folder_btn = gtk4::Button::builder()
+      .icon_name("folder-symbolic")
+      .halign(gtk4::Align::End)
+      .valign(gtk4::Align::Center)
+      .css_classes(["flat"])
+      .tooltip_text("Open Containing Folder")
+      .build();
+    folder_hbox.append(&folder_vbox);
+    folder_hbox.append(&properties_folder_btn);
+    folder_row.set_child(Some(&folder_hbox));
+    listbox1.append(&folder_row);
+    properties_popover_box.append(&listbox1);
+
+    // Helper to create listbox row with title and value
+    let create_row = |title: &str, value_lbl: &gtk4::Label| -> gtk4::ListBoxRow {
+      let row = gtk4::ListBoxRow::builder()
+        .activatable(false)
+        .selectable(false)
+        .build();
+      let vbox = gtk4::Box::builder()
+        .orientation(gtk4::Orientation::Vertical)
+        .spacing(2)
+        .margin_top(8)
+        .margin_bottom(8)
+        .margin_start(12)
+        .margin_end(12)
+        .build();
+      let title_lbl = gtk4::Label::builder()
+        .label(title)
+        .halign(gtk4::Align::Start)
+        .css_classes(["info-title"])
+        .build();
+      vbox.append(&title_lbl);
+      vbox.append(value_lbl);
+      row.set_child(Some(&vbox));
+      row
+    };
+
+    // Group 2: Size, Format, File Size
+    let listbox2 = gtk4::ListBox::builder()
+      .selection_mode(gtk4::SelectionMode::None)
+      .css_classes(["boxed-list"])
+      .build();
+    listbox2.append(&create_row("Image Size", &properties_size_label));
+    listbox2.append(&create_row("Image Format", &properties_format_label));
+    listbox2.append(&create_row("File Size", &properties_file_size_label));
+    properties_popover_box.append(&listbox2);
+
+    // Group 3: Created, Modified times
+    let listbox3 = gtk4::ListBox::builder()
+      .selection_mode(gtk4::SelectionMode::None)
+      .css_classes(["boxed-list"])
+      .build();
+    listbox3.append(&create_row("File Created", &properties_created_label));
+    listbox3.append(&create_row("File Modified", &properties_modified_label));
+    properties_popover_box.append(&listbox3);
+
+    properties_popover.set_child(Some(&properties_popover_box));
+
+    let properties_btn = gtk4::MenuButton::builder()
+      .icon_name("info-outline-symbolic")
+      .tooltip_text("Image Properties")
+      .visible(false)
+      .popover(&properties_popover)
+      .build();
+    header_bar.pack_end(&properties_btn);
 
     let zoom_badge_btn = gtk4::Button::builder()
       .label("100%")
@@ -434,8 +592,32 @@ impl PixieWindow {
       nav_prev_btn: nav_prev_btn.clone(),
       nav_next_btn: nav_next_btn.clone(),
       zoom_badge_btn: zoom_badge_btn.clone(),
+      properties_btn: properties_btn.clone(),
+      properties_folder_label: properties_folder_label.clone(),
+      properties_size_label: properties_size_label.clone(),
+      properties_format_label: properties_format_label.clone(),
+      properties_file_size_label: properties_file_size_label.clone(),
+      properties_created_label: properties_created_label.clone(),
+      properties_modified_label: properties_modified_label.clone(),
       scrolled: scrolled.clone(),
       stack: stack.clone(),
+    });
+
+    // ── Image Information Popover Map Connection ────────────────────────
+    let win_properties_map = win_struct.clone();
+    properties_popover.connect_map(move |_| {
+      win_properties_map.update_properties_popover();
+    });
+
+    let win_folder_click = win_struct.clone();
+    properties_folder_btn.connect_clicked(move |_| {
+      if let Some(ref path) = *win_folder_click.current_file_path.borrow() {
+        if let Some(parent_path) = path.parent() {
+          if let Ok(uri) = glib::filename_to_uri(parent_path, None) {
+            let _ = gio::AppInfo::launch_default_for_uri(&uri, None::<&gio::AppLaunchContext>);
+          }
+        }
+      }
     });
 
     // ── Metadata Cleaner Popover Setup ──────────────────────────────────
@@ -1160,6 +1342,9 @@ impl PixieWindow {
           img.height()
         ));
 
+        self.properties_btn.set_visible(true);
+        self.update_properties_popover();
+
         // Title
         self.refresh_window_title();
 
@@ -1218,6 +1403,7 @@ impl PixieWindow {
           self.redo_btn.set_sensitive(doc.history().can_redo());
         }
 
+        self.update_properties_popover();
         self.refresh_window_title();
         self.show_toast("Operation applied successfully");
       }
@@ -1230,6 +1416,7 @@ impl PixieWindow {
             self.saved_metadata_policy.set(doc.metadata_policy);
             *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
           }
+          self.update_properties_popover();
           self.refresh_window_title();
         }
       }
@@ -1468,6 +1655,7 @@ impl PixieWindow {
 
     drop(doc_borrow);
     if did_undo {
+      self.update_properties_popover();
       self.refresh_window_title();
       self.show_toast("Undo applied");
     }
@@ -1488,6 +1676,7 @@ impl PixieWindow {
 
     drop(doc_borrow);
     if did_redo {
+      self.update_properties_popover();
       self.refresh_window_title();
       self.show_toast("Redo applied");
     }
@@ -1958,4 +2147,75 @@ impl PixieWindow {
       self.zoom_badge_btn.set_visible(false);
     }
   }
+
+  fn update_properties_popover(&self) {
+    let path_borrow = self.current_file_path.borrow();
+    if let Some(ref path) = *path_borrow {
+      let folder_name = path
+        .parent()
+        .and_then(|p| p.file_name())
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "Unknown".to_string());
+      self.properties_folder_label.set_label(&folder_name);
+
+      let format_str = if let Some(ref doc) = *self.document.borrow() {
+        format!("{:?}", doc.original_format()).to_uppercase()
+      } else {
+        path
+          .extension()
+          .map(|e| e.to_string_lossy().to_string().to_uppercase())
+          .unwrap_or_else(|| "Unknown".to_string())
+      };
+      self.properties_format_label.set_label(&format_str);
+
+      let size_str = if let Some(ref img) = self.canvas.state.borrow().image {
+        format!("{} × {}", img.width(), img.height())
+      } else {
+        "Unknown".to_string()
+      };
+      self.properties_size_label.set_label(&size_str);
+
+      if let Ok(metadata) = std::fs::metadata(path) {
+        let len = metadata.len();
+        let size_formatted = if len < 1024 {
+          format!("{} B", len)
+        } else if len < 1024 * 1024 {
+          format!("{:.1} KB", len as f64 / 1024.0)
+        } else {
+          format!("{:.1} MB", len as f64 / (1024.0 * 1024.0))
+        };
+        self.properties_file_size_label.set_label(&size_formatted);
+
+        let created_str = metadata
+          .created()
+          .ok()
+          .map(format_system_time)
+          .unwrap_or_else(|| "Unknown".to_string());
+        self.properties_created_label.set_label(&created_str);
+
+        let modified_str = metadata
+          .modified()
+          .ok()
+          .map(format_system_time)
+          .unwrap_or_else(|| "Unknown".to_string());
+        self.properties_modified_label.set_label(&modified_str);
+      } else {
+        self.properties_file_size_label.set_label("Unknown");
+        self.properties_created_label.set_label("Unknown");
+        self.properties_modified_label.set_label("Unknown");
+      }
+    }
+  }
+}
+
+fn format_system_time(system_time: std::time::SystemTime) -> String {
+  if let Ok(duration) = system_time.duration_since(std::time::UNIX_EPOCH) {
+    let timestamp = duration.as_secs() as i64;
+    if let Ok(dt) = glib::DateTime::from_unix_local(timestamp) {
+      if let Ok(formatted) = dt.format("%d/%m/%y %H:%M:%S") {
+        return formatted.to_string();
+      }
+    }
+  }
+  "Unknown".to_string()
 }
