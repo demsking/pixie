@@ -289,6 +289,7 @@ impl PixieWindow {
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(6)
       .margin_bottom(16)
+      .margin_end(16)
       .halign(gtk4::Align::End)
       .valign(gtk4::Align::End)
       .css_classes(["floating-bar"])
