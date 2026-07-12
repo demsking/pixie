@@ -1,6 +1,6 @@
 use super::canvas::PixieCanvas;
 use gtk4::prelude::*;
-use pixie_core::{ FilterType, ImageOperation, ResizeOperation };
+use pixie_core::{FilterType, ImageOperation, ResizeOperation};
 use std::cell::Cell;
 use std::rc::Rc;
 
@@ -49,12 +49,12 @@ impl ResizeToolView {
     canvas: &PixieCanvas,
     current_file_size: Option<u64>,
     on_apply: F,
-    on_cancel: impl Fn() + 'static
+    on_cancel: impl Fn() + 'static,
   ) -> Self
-    where F: Fn(ImageOperation) + 'static
+  where
+    F: Fn(ImageOperation) + 'static,
   {
-    let container = gtk4::Box
-      ::builder()
+    let container = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Vertical)
       .spacing(12)
       .margin_top(12)
@@ -63,8 +63,7 @@ impl ResizeToolView {
       .margin_end(12)
       .build();
 
-    let title = gtk4::Label
-      ::builder()
+    let title = gtk4::Label::builder()
       .label("Resize Image")
       .halign(gtk4::Align::Start)
       .css_classes(["title-3"])
@@ -74,7 +73,8 @@ impl ResizeToolView {
     // Get original dimensions
     let (orig_w, orig_h) = {
       let state = canvas.state.borrow();
-      state.image
+      state
+        .image
         .as_ref()
         .map(|img| (img.width(), img.height()))
         .unwrap_or((800, 600))
@@ -84,8 +84,7 @@ impl ResizeToolView {
     let aspect_ratio_locked = Rc::new(Cell::new(true));
 
     // SpinButtons
-    let width_label = gtk4::Label
-      ::builder()
+    let width_label = gtk4::Label::builder()
       .label("Width (pixels)")
       .halign(gtk4::Align::Start)
       .build();
@@ -96,8 +95,7 @@ impl ResizeToolView {
     width_spin.set_hexpand(true);
     container.append(&width_spin);
 
-    let height_label = gtk4::Label
-      ::builder()
+    let height_label = gtk4::Label::builder()
       .label("Height (pixels)")
       .halign(gtk4::Align::Start)
       .build();
@@ -109,8 +107,7 @@ impl ResizeToolView {
     container.append(&height_spin);
 
     // Percentage SpinButton
-    let pct_label = gtk4::Label
-      ::builder()
+    let pct_label = gtk4::Label::builder()
       .label("Percentage (%)")
       .halign(gtk4::Align::Start)
       .build();
@@ -122,19 +119,16 @@ impl ResizeToolView {
     container.append(&pct_spin);
 
     // Lock Aspect Ratio Switch
-    let aspect_lock_box = gtk4::Box
-      ::builder()
+    let aspect_lock_box = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(6)
       .build();
-    let aspect_lock_label = gtk4::Label
-      ::builder()
+    let aspect_lock_label = gtk4::Label::builder()
       .label("Lock Aspect Ratio")
       .hexpand(true)
       .halign(gtk4::Align::Start)
       .build();
-    let aspect_lock_switch = gtk4::Switch
-      ::builder()
+    let aspect_lock_switch = gtk4::Switch::builder()
       .active(true)
       .valign(gtk4::Align::Center)
       .build();
@@ -143,25 +137,25 @@ impl ResizeToolView {
     container.append(&aspect_lock_box);
 
     // Prevent Enlargement Switch
-    let enlarge_box = gtk4::Box
-      ::builder()
+    let enlarge_box = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(6)
       .build();
-    let enlarge_label = gtk4::Label
-      ::builder()
+    let enlarge_label = gtk4::Label::builder()
       .label("Prevent Enlargement")
       .hexpand(true)
       .halign(gtk4::Align::Start)
       .build();
-    let enlarge_switch = gtk4::Switch::builder().active(false).valign(gtk4::Align::Center).build();
+    let enlarge_switch = gtk4::Switch::builder()
+      .active(false)
+      .valign(gtk4::Align::Center)
+      .build();
     enlarge_box.append(&enlarge_label);
     enlarge_box.append(&enlarge_switch);
     container.append(&enlarge_box);
 
     // Interpolation
-    let filter_label = gtk4::Label
-      ::builder()
+    let filter_label = gtk4::Label::builder()
       .label("Interpolation Method")
       .halign(gtk4::Align::Start)
       .build();
@@ -173,37 +167,33 @@ impl ResizeToolView {
     container.append(&filter_combo);
 
     // Info Display: resulting dimensions & estimated memory
-    let info_box = gtk4::Box
-      ::builder()
+    let info_box = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Vertical)
       .spacing(4)
       .margin_top(8)
       .css_classes(["card"])
       .build();
 
-    let info_dims = gtk4::Label
-      ::builder()
+    let info_dims = gtk4::Label::builder()
       .label(&format!("Output Dimensions: {orig_w} × {orig_h}"))
       .halign(gtk4::Align::Start)
       .build();
-    let info_mem = gtk4::Label
-      ::builder()
-      .label(
-        &format!(
-          "Estimated New File Size: {}",
-          current_file_size.map(Self::format_size).unwrap_or_else(|| "Unknown".to_string())
-        )
-      )
+    let info_mem = gtk4::Label::builder()
+      .label(&format!(
+        "Estimated New File Size: {}",
+        current_file_size
+          .map(Self::format_size)
+          .unwrap_or_else(|| "Unknown".to_string())
+      ))
       .halign(gtk4::Align::Start)
       .build();
-    let info_current_size = gtk4::Label
-      ::builder()
-      .label(
-        &format!(
-          "Current File Size: {}",
-          current_file_size.map(Self::format_size).unwrap_or_else(|| "Unknown".to_string())
-        )
-      )
+    let info_current_size = gtk4::Label::builder()
+      .label(&format!(
+        "Current File Size: {}",
+        current_file_size
+          .map(Self::format_size)
+          .unwrap_or_else(|| "Unknown".to_string())
+      ))
       .halign(gtk4::Align::Start)
       .build();
 
@@ -230,12 +220,12 @@ impl ResizeToolView {
           }
         });
 
-        info_mem.set_text(
-          &format!(
-            "Estimated File Size: {}",
-            estimated_size.map(Self::format_size).unwrap_or_else(|| "Unknown".to_string())
-          )
-        );
+        info_mem.set_text(&format!(
+          "Estimated File Size: {}",
+          estimated_size
+            .map(Self::format_size)
+            .unwrap_or_else(|| "Unknown".to_string())
+        ));
       }
     };
 
@@ -337,15 +327,13 @@ impl ResizeToolView {
     }
 
     // Actions box
-    let btn_box = gtk4::Box
-      ::builder()
+    let btn_box = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
       .spacing(6)
       .margin_top(12)
       .build();
 
-    let apply_btn = gtk4::Button
-      ::builder()
+    let apply_btn = gtk4::Button::builder()
       .label("Resize")
       .hexpand(true)
       .css_classes(["suggested-action"])
@@ -366,9 +354,15 @@ impl ResizeToolView {
       let filter = Self::filter_from_index(filter_combo.selected());
 
       let prevent_enlargement = enlarge_switch_clone.is_active();
-      let (target_w, target_h) = pixie_core
-        ::calculate_dimensions(orig_w, orig_h, w, h, aspect_ratio_locked.get(), prevent_enlargement)
-        .unwrap_or((w, h));
+      let (target_w, target_h) = pixie_core::calculate_dimensions(
+        orig_w,
+        orig_h,
+        w,
+        h,
+        aspect_ratio_locked.get(),
+        prevent_enlargement,
+      )
+      .unwrap_or((w, h));
 
       let op = ImageOperation::Resize(ResizeOperation::new(target_w, target_h, filter));
       on_apply(op);
