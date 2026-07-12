@@ -10,8 +10,10 @@ pub struct PixieApplication {
 impl PixieApplication {
   pub fn new() -> Self {
     // Register GResources compiled by build.rs
+    #[rustfmt::skip]
     gio::resources_register_include!("pixie.gresource").expect("Failed to register GResources");
 
+    #[rustfmt::skip]
     let app = adw::Application::builder()
       .application_id("io.gitlab.demsking.Pixie")
       .flags(gio::ApplicationFlags::HANDLES_OPEN)
@@ -24,6 +26,7 @@ impl PixieApplication {
 
   fn setup_signals(&self) {
     self.app.connect_startup(|_| {
+      configure_default_color_scheme();
       load_css();
       register_icon_theme_path();
     });
@@ -55,6 +58,11 @@ impl PixieApplication {
   pub fn run(&self) -> glib::ExitCode {
     self.app.run()
   }
+}
+
+fn configure_default_color_scheme() {
+  let style_manager = adw::StyleManager::default();
+  style_manager.set_color_scheme(adw::ColorScheme::PreferDark);
 }
 
 fn load_css() {
