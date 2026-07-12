@@ -1,4 +1,6 @@
-image: rust:latest
+default:
+  image: rust:latest
+  interruptible: true
 
 stages:
   - validate
@@ -7,81 +9,278 @@ stages:
   - build
   - package
   - documentation
-  - release
+  - publish
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: "$CI_COMMIT_TAG"
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    - if: "$CI_COMMIT_BRANCH"
 
 variables:
+  APP_ID: io.gitlab.demsking.Pixie
+  APP_BINARY: pixie-app
+  FLATPAK_MANIFEST: packaging/flatpak/io.gitlab.demsking.Pixie.json
+
   CARGO_HOME: $CI_PROJECT_DIR/.cargo
-  APT_CACHE_DIR: $CI_PROJECT_DIR/apt
+  CARGO_TARGET_DIR: $CI_PROJECT_DIR/target
+
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: "1"
+
+  DEBIAN_FRONTEND: noninteractive
 
 cache:
-  key: "$CI_COMMIT_REF_SLUG"
+  key:
+    files:
+      - Cargo.lock
+    prefix: rust-$CI_COMMIT_REF_SLUG
   paths:
-    - .cargo/
+    - .cargo/registry/
+    - .cargo/git/
     - target/
-    - apt/
+  policy: pull-push
 
-before_script:
-  # Install GTK4 and Libadwaita development libraries
-  - apt-get update -yq
-  - apt-get install -y --no-install-recommends libgtk-4-dev libadwaita-1-dev pkg-config make
+.rust-job:
+  before_script:
+    - apt-get update -yq
+    - >
+      apt-get install -y --no-install-recommends
+      libgtk-4-dev
+      libadwaita-1-dev
+      pkg-config
+      make
+    - rustc --version
+    - cargo --version
 
-fmt:
+.install-cargo-tool:
+  extends: .rust-job
+  before_script:
+    - !reference [.rust-job, before_script]
+    - mkdir -p "$CARGO_HOME/bin"
+
+format-check:
+  extends: .rust-job
   stage: validate
   script:
     - make fmt-check
 
-clippy:
+lint-code:
+  extends: .rust-job
   stage: validate
   script:
     - make lint
 
-test:
+check-compilation:
+  extends: .rust-job
+  stage: validate
+  script:
+    - cargo check --workspace --all-targets --locked
+
+run-tests:
+  extends: .rust-job
   stage: test
   script:
     - make test-all
+  artifacts:
+    when: always
+    expire_in: 1 week
+    reports:
+      junit:
+        - target/**/*junit*.xml
 
-audit:
+check-known-vulnerabilities:
+  extends: .install-cargo-tool
   stage: security
+  before_script:
+    - !reference [.install-cargo-tool, before_script]
+    - >
+      if ! command -v cargo-audit >/dev/null; then
+        cargo install --locked cargo-audit;
+      fi
   script:
-    - cargo install cargo-audit
     - make audit
-  allow_failure: true
 
-deny:
+check-dependency-policies:
+  extends: .install-cargo-tool
   stage: security
+  before_script:
+    - !reference [.install-cargo-tool, before_script]
+    - >
+      if ! command -v cargo-deny >/dev/null; then
+        cargo install --locked cargo-deny;
+      fi
   script:
-    - cargo install --locked cargo-deny
     - make deny
 
-build-release:
+build-release-binary:
+  extends: .rust-job
   stage: build
   script:
     - make build-release
   artifacts:
+    name: pixie-$CI_COMMIT_REF_SLUG-$CI_COMMIT_SHORT_SHA
     paths:
       - target/release/pixie-app
     expire_in: 1 week
 
-flatpak:
-  stage: package
-  image: alpine:latest
-  only:
-    - main
-  before_script:
-    - apk add --no-cache flatpak-builder
+validate-flatpak-manifest:
+  stage: validate
+  image:
+    name: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+    entrypoint: [""]
+  cache: []
+  before_script: []
   script:
-    - echo "Validating flatpak manifest..."
-    - flatpak-builder --show-manifest packaging/flatpak/io.gitlab.demsking.Pixie.json > /dev/null
+    - flatpak-builder --show-manifest "$FLATPAK_MANIFEST" >/dev/null
+    - >
+      flatpak run
+      --command=flatpak-builder-lint
+      org.flatpak.Builder
+      manifest
+      "$FLATPAK_MANIFEST"
+  rules:
+    - changes:
+        - packaging/flatpak/**/*
+        - Cargo.toml
+        - Cargo.lock
+        - src/**/*
+        - data/**/*
+        - assets/**/*
 
-pages:
+build-flatpak-bundle:
+  stage: package
+  image:
+    name: ghcr.io/flathub-infra/flatpak-github-actions:gnome-49
+    entrypoint: [""]
+  cache:
+    key:
+      files:
+        - Cargo.lock
+        - packaging/flatpak/io.gitlab.demsking.Pixie.json
+      prefix: flatpak
+    paths:
+      - .flatpak-builder/
+    policy: pull-push
+  before_script: []
+  script:
+    - rm -rf flatpak-build flatpak-repository
+    - >
+      flatpak-builder
+      --force-clean
+      --disable-rofiles-fuse
+      --repo=flatpak-repository
+      flatpak-build
+      "$FLATPAK_MANIFEST"
+    - >
+      flatpak build-bundle
+      flatpak-repository
+      "$APP_ID.flatpak"
+      "$APP_ID"
+  artifacts:
+    name: pixie-flatpak-$CI_COMMIT_TAG
+    paths:
+      - io.gitlab.demsking.Pixie.flatpak
+    expire_in: 4 weeks
+  rules:
+    - if: "$CI_COMMIT_TAG"
+
+build-documentation:
+  extends: .install-cargo-tool
   stage: documentation
-  only:
-    - tags
   before_script:
-    - apt-get update -yq && apt-get install -y --no-install-recommends libgtk-4-dev libadwaita-1-dev pkg-config make
-    - cargo install mdbook
+    - !reference [.install-cargo-tool, before_script]
+    - >
+      if ! command -v mdbook >/dev/null; then
+        cargo install --locked mdbook;
+      fi
   script:
     - make docs-build
   artifacts:
     paths:
       - public
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+
+pages:
+  stage: documentation
+  image: alpine:latest
+  needs:
+    - job: build-documentation
+      artifacts: true
+  cache: []
+  before_script: []
+  script:
+    - test -f public/index.html
+  pages: true
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+
+publish-manifest-to-flathub:
+  stage: publish
+  image: alpine:latest
+  cache: []
+  resource_group: flathub-publication
+  before_script:
+    - apk add --no-cache git github-cli
+    - git config --global user.name "${GITLAB_USER_NAME:-Pixie Release Bot}"
+    - git config --global user.email "${GITLAB_USER_EMAIL:-demsking@gmail.com}"
+  script:
+    - test -n "$FLATHUB_GITHUB_TOKEN"
+    - test -n "$FLATHUB_REPOSITORY"
+
+    - export RELEASE_BRANCH="pixie-${CI_COMMIT_TAG}-${CI_PIPELINE_ID}"
+    - export FLATHUB_DIRECTORY="$CI_PROJECT_DIR/flathub-repository"
+
+    - >
+      git clone
+      "https://x-access-token:${FLATHUB_GITHUB_TOKEN}@github.com/${FLATHUB_REPOSITORY}.git"
+      "$FLATHUB_DIRECTORY"
+
+    - cd "$FLATHUB_DIRECTORY"
+    - git switch --create "$RELEASE_BRANCH"
+
+    - cp
+      "$CI_PROJECT_DIR/$FLATPAK_MANIFEST"
+      "$APP_ID.json"
+
+    - git add "$APP_ID.json"
+
+    - |
+      if git diff --cached --quiet; then
+        echo "The Flathub manifest is already up to date."
+        exit 0
+      fi
+
+    - git commit -m "Update Pixie to ${CI_COMMIT_TAG}"
+    - git push origin "$RELEASE_BRANCH"
+
+    - >
+      GH_TOKEN="$FLATHUB_GITHUB_TOKEN"
+      gh pr create
+      --repo "$FLATHUB_REPOSITORY"
+      --base master
+      --head "$RELEASE_BRANCH"
+      --title "Update Pixie to ${CI_COMMIT_TAG}"
+      --body "Automated Flatpak manifest update from GitLab release ${CI_COMMIT_TAG}."
+
+    - >
+      GH_TOKEN="$FLATHUB_GITHUB_TOKEN"
+      gh pr merge
+      --repo "$FLATHUB_REPOSITORY"
+      "$RELEASE_BRANCH"
+      --auto
+      --squash
+      --delete-branch
+  environment:
+    name: flathub
+    url: https://flathub.org/apps/io.gitlab.demsking.Pixie
+  rules:
+    - if: "$CI_COMMIT_TAG"
+  needs:
+    - job: build-flatpak-bundle
+      artifacts: false
