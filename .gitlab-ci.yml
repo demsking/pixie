@@ -192,6 +192,8 @@ pages:
   cache: []
   before_script: []
   pages: true
+  script:
+    - ls -la pages/
   artifacts:
     paths:
       - public
