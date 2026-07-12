@@ -1,6 +1,8 @@
 use little_exif::exif_tag::ExifTag;
 use little_exif::metadata::Metadata;
-use pixie_core::{MetadataPolicy, clean_image_metadata};
+use pixie_core::{
+  MetadataEdits, MetadataPolicy, MetadataValueEdit, apply_metadata_edits, clean_image_metadata,
+};
 
 #[test]
 fn test_metadata_policy_cleaning() -> Result<(), Box<dyn std::error::Error>> {
@@ -75,6 +77,51 @@ fn test_metadata_policy_cleaning() -> Result<(), Box<dyn std::error::Error>> {
   assert!(!camera_present, "Camera model should have been stripped");
   assert!(comment_present, "Comments should have been preserved");
   assert!(timestamp_present, "Timestamps should have been preserved");
+
+  Ok(())
+}
+
+#[test]
+fn test_apply_metadata_description_edits() -> Result<(), Box<dyn std::error::Error>> {
+  let image_file = tempfile::Builder::new().suffix(".png").tempfile()?;
+  let source_image = image::RgbaImage::from_pixel(2, 2, image::Rgba([255, 255, 255, 255]));
+  source_image.save_with_format(image_file.path(), image::ImageFormat::Png)?;
+
+  let mut metadata = Metadata::new();
+  metadata.set_tag(ExifTag::ImageDescription("Before".to_string()));
+  metadata.write_to_file(image_file.path())?;
+
+  let set_edits = MetadataEdits {
+    image_description: MetadataValueEdit::Set("After".to_string()),
+    artist: MetadataValueEdit::Keep,
+    copyright: MetadataValueEdit::Keep,
+    software: MetadataValueEdit::Keep,
+  };
+  apply_metadata_edits(image_file.path(), &set_edits).map_err(std::io::Error::other)?;
+
+  let after_set = Metadata::new_from_path(image_file.path())?;
+  let mut found_after = false;
+  for tag in &after_set {
+    let debug_str = format!("{:?}", tag);
+    if debug_str.starts_with("ImageDescription") {
+      found_after = debug_str.contains("After");
+    }
+  }
+  assert!(found_after, "ImageDescription should be updated to 'After'");
+
+  let clear_edits = MetadataEdits {
+    image_description: MetadataValueEdit::Clear,
+    artist: MetadataValueEdit::Keep,
+    copyright: MetadataValueEdit::Keep,
+    software: MetadataValueEdit::Keep,
+  };
+  apply_metadata_edits(image_file.path(), &clear_edits).map_err(std::io::Error::other)?;
+
+  let after_clear = Metadata::new_from_path(image_file.path())?;
+  let has_description = (&after_clear)
+    .into_iter()
+    .any(|tag| format!("{:?}", tag).starts_with("ImageDescription"));
+  assert!(!has_description, "ImageDescription should be removed");
 
   Ok(())
 }

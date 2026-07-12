@@ -3,7 +3,7 @@ use libadwaita as adw;
 use libadwaita::prelude::*;
 use pixie_core::{
   CircleMaskOperation, CropOperation, ExportOptions, FlipDirection, FlipOperation, ImageOperation,
-  PixieDocument, RotateOperation, RotationType,
+  MetadataEdits, MetadataValueEdit, PixieDocument, RotateOperation, RotationType,
 };
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -29,6 +29,7 @@ pub struct PixieWindow {
   worker: Rc<ImageWorker>,
   saved_history_index: Rc<std::cell::Cell<Option<usize>>>,
   saved_metadata_policy: Rc<std::cell::Cell<pixie_core::MetadataPolicy>>,
+  saved_metadata_edits: Rc<RefCell<MetadataEdits>>,
   force_close: Rc<std::cell::Cell<bool>>,
   alt_pressed: std::cell::Cell<bool>,
   pub resize_to_image_on_load: std::cell::Cell<bool>,
@@ -46,6 +47,7 @@ pub struct PixieWindow {
   crop_btn: gtk4::ToggleButton,
   resize_btn: gtk4::ToggleButton,
   metadata_btn: gtk4::MenuButton,
+  metadata_edit_btn: gtk4::Button,
   rotate_btn: gtk4::Button,
   mirror_btn: gtk4::Button,
   flip_btn: gtk4::Button,
@@ -147,6 +149,13 @@ impl PixieWindow {
     let metadata_btn = gtk4::MenuButton::builder()
       .icon_name("security-high-symbolic")
       .tooltip_text("Metadata Cleaner")
+      .sensitive(false)
+      .css_classes(["floating-toolbar__button"])
+      .build();
+
+    let metadata_edit_btn = gtk4::Button::builder()
+      .icon_name("document-edit-symbolic")
+      .tooltip_text("Edit Metadata")
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
@@ -307,6 +316,7 @@ impl PixieWindow {
     tool_bar.append(&crop_btn);
     tool_bar.append(&resize_btn);
     tool_bar.append(&metadata_btn);
+    tool_bar.append(&metadata_edit_btn);
     tool_bar.append(&rotate_btn);
     tool_bar.append(&mirror_btn);
     tool_bar.append(&flip_btn);
@@ -371,6 +381,7 @@ impl PixieWindow {
     let saved_history_index = Rc::new(std::cell::Cell::new(None));
     let saved_metadata_policy =
       Rc::new(std::cell::Cell::new(pixie_core::MetadataPolicy::default()));
+    let saved_metadata_edits = Rc::new(RefCell::new(MetadataEdits::default()));
     let force_close = Rc::new(std::cell::Cell::new(false));
     let active_toasts = Rc::new(RefCell::new(Vec::<adw::Toast>::new()));
 
@@ -384,6 +395,7 @@ impl PixieWindow {
       worker: worker.clone(),
       saved_history_index: saved_history_index.clone(),
       saved_metadata_policy: saved_metadata_policy.clone(),
+      saved_metadata_edits: saved_metadata_edits.clone(),
       force_close: force_close.clone(),
       alt_pressed: std::cell::Cell::new(false),
       resize_to_image_on_load: std::cell::Cell::new(false),
@@ -395,6 +407,7 @@ impl PixieWindow {
       crop_btn: crop_btn.clone(),
       resize_btn: resize_btn.clone(),
       metadata_btn: metadata_btn.clone(),
+      metadata_edit_btn: metadata_edit_btn.clone(),
       rotate_btn: rotate_btn.clone(),
       mirror_btn: mirror_btn.clone(),
       flip_btn: flip_btn.clone(),
@@ -556,6 +569,11 @@ impl PixieWindow {
         }
       }
       popover_clean.popdown();
+    });
+
+    let win_edit = win_struct.clone();
+    metadata_edit_btn.connect_clicked(move |_| {
+      win_edit.show_metadata_editor_popover();
     });
 
     let win_open_btn = win_struct.clone();
@@ -1099,6 +1117,7 @@ impl PixieWindow {
         self.undo_btn.set_sensitive(doc.history().can_undo());
         self.redo_btn.set_sensitive(doc.history().can_redo());
         self.saved_metadata_policy.set(doc.metadata_policy);
+        *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
         *self.document.borrow_mut() = Some(doc);
         self.saved_history_index.set(Some(0));
         self.force_close.set(false);
@@ -1186,6 +1205,7 @@ impl PixieWindow {
           if let Some(ref doc) = *self.document.borrow() {
             self.saved_history_index.set(Some(doc.history().len()));
             self.saved_metadata_policy.set(doc.metadata_policy);
+            *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
           }
         }
       }
@@ -1203,6 +1223,7 @@ impl PixieWindow {
     self.crop_btn.set_sensitive(enable);
     self.resize_btn.set_sensitive(enable);
     self.metadata_btn.set_sensitive(enable);
+    self.metadata_edit_btn.set_sensitive(enable);
     self.rotate_btn.set_sensitive(enable);
     self.mirror_btn.set_sensitive(enable);
     self.flip_btn.set_sensitive(enable);
@@ -1397,9 +1418,15 @@ impl PixieWindow {
       self.progress_bar.set_fraction(0.0);
       let original_path = self.current_file_path.borrow().clone();
       let policy = doc.metadata_policy;
-      self
-        .worker
-        .spawn_export(current, path, original_path, policy, options);
+      let metadata_edits = doc.metadata_edits.clone();
+      self.worker.spawn_export(
+        current,
+        path,
+        original_path,
+        policy,
+        metadata_edits,
+        options,
+      );
     }
   }
 
@@ -1487,6 +1514,156 @@ impl PixieWindow {
       .build();
     popover.set_child(Some(&view.container));
     popover.set_parent(&self.resize_btn);
+
+    let active_popover = self.active_tool_popover.clone();
+    popover.connect_closed(move |_| {
+      *active_popover.borrow_mut() = None;
+    });
+
+    popover.popup();
+    *self.active_tool_popover.borrow_mut() = Some(popover);
+  }
+
+  fn show_metadata_editor_popover(self: &Rc<Self>) {
+    self.close_tool_popover();
+
+    let popover = gtk4::Popover::builder()
+      .autohide(true)
+      .has_arrow(true)
+      .position(gtk4::PositionType::Top)
+      .build();
+
+    let content = gtk4::Box::builder()
+      .orientation(gtk4::Orientation::Vertical)
+      .spacing(8)
+      .margin_top(12)
+      .margin_bottom(12)
+      .margin_start(12)
+      .margin_end(12)
+      .width_request(300)
+      .build();
+
+    let title_label = gtk4::Label::builder()
+      .label("Edit Metadata")
+      .halign(gtk4::Align::Start)
+      .css_classes(["title-4"])
+      .build();
+    content.append(&title_label);
+
+    // Helper: labelled entry row (no placeholder)
+    let make_field = |label_text: &str| -> (gtk4::Label, gtk4::Entry) {
+      let lbl = gtk4::Label::builder()
+        .label(label_text)
+        .halign(gtk4::Align::Start)
+        .build();
+      let entry = gtk4::Entry::builder().hexpand(true).build();
+      (lbl, entry)
+    };
+
+    let (desc_lbl, description_entry) = make_field("Image description");
+    let (artist_lbl, artist_entry) = make_field("Artist");
+    let (copyright_lbl, copyright_entry) = make_field("Copyright");
+    let (software_lbl, software_entry) = make_field("Software");
+
+    for (lbl, entry) in [
+      (&desc_lbl, &description_entry),
+      (&artist_lbl, &artist_entry),
+      (&copyright_lbl, &copyright_entry),
+      (&software_lbl, &software_entry),
+    ] {
+      content.append(lbl);
+      content.append(entry);
+    }
+
+    // Pre-fill: pending edits take priority, else read from the original file.
+    let file_fields = self
+      .current_file_path
+      .borrow()
+      .as_deref()
+      .map(pixie_core::read_image_metadata_fields)
+      .unwrap_or_default();
+
+    let fill = |entry: &gtk4::Entry, edit: &MetadataValueEdit, file_val: Option<&str>| match edit {
+      MetadataValueEdit::Set(v) => entry.set_text(v),
+      _ => {
+        if let Some(v) = file_val {
+          entry.set_text(v);
+        }
+      }
+    };
+
+    if let Some(ref doc) = *self.document.borrow() {
+      fill(
+        &description_entry,
+        &doc.metadata_edits.image_description,
+        file_fields.image_description.as_deref(),
+      );
+      fill(
+        &artist_entry,
+        &doc.metadata_edits.artist,
+        file_fields.artist.as_deref(),
+      );
+      fill(
+        &copyright_entry,
+        &doc.metadata_edits.copyright,
+        file_fields.copyright.as_deref(),
+      );
+      fill(
+        &software_entry,
+        &doc.metadata_edits.software,
+        file_fields.software.as_deref(),
+      );
+    }
+
+    let apply_btn = gtk4::Button::builder()
+      .label("Apply")
+      .halign(gtk4::Align::End)
+      .css_classes(["suggested-action"])
+      .build();
+    content.append(&apply_btn);
+
+    let resolve = |entry: &gtk4::Entry| -> MetadataValueEdit {
+      let v = entry.text().trim().to_string();
+      if v.is_empty() {
+        MetadataValueEdit::Keep
+      } else {
+        MetadataValueEdit::Set(v)
+      }
+    };
+
+    let self_apply = self.clone();
+    let popover_apply = popover.clone();
+    let d_entry = description_entry.clone();
+    let a_entry = artist_entry.clone();
+    let c_entry = copyright_entry.clone();
+    let s_entry = software_entry.clone();
+    apply_btn.connect_clicked(move |_| {
+      let mut doc_borrow = self_apply.document.borrow_mut();
+      if let Some(ref mut doc) = *doc_borrow {
+        doc.metadata_edits.image_description = resolve(&d_entry);
+        doc.metadata_edits.artist = resolve(&a_entry);
+        doc.metadata_edits.copyright = resolve(&c_entry);
+        doc.metadata_edits.software = resolve(&s_entry);
+        self_apply.show_toast("Metadata edits saved. Changes will be applied on Save/Convert.");
+      }
+      popover_apply.popdown();
+    });
+
+    // Press Enter in any field triggers apply
+    for entry in [
+      &description_entry,
+      &artist_entry,
+      &copyright_entry,
+      &software_entry,
+    ] {
+      let apply_btn_ref = apply_btn.clone();
+      entry.connect_activate(move |_| {
+        apply_btn_ref.emit_clicked();
+      });
+    }
+
+    popover.set_child(Some(&content));
+    popover.set_parent(&self.metadata_edit_btn);
 
     let active_popover = self.active_tool_popover.clone();
     popover.connect_closed(move |_| {
@@ -1627,7 +1804,9 @@ impl PixieWindow {
     let doc_borrow = self.document.borrow();
     if let Some(ref doc) = *doc_borrow {
       if let Some(saved_idx) = self.saved_history_index.get() {
-        doc.history().len() != saved_idx || doc.metadata_policy != self.saved_metadata_policy.get()
+        doc.history().len() != saved_idx
+          || doc.metadata_policy != self.saved_metadata_policy.get()
+          || doc.metadata_edits != *self.saved_metadata_edits.borrow()
       } else {
         false
       }

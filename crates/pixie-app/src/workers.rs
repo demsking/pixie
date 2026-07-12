@@ -101,6 +101,7 @@ impl ImageWorker {
     file_path: std::path::PathBuf,
     original_path: Option<std::path::PathBuf>,
     metadata_policy: pixie_core::MetadataPolicy,
+    metadata_edits: pixie_core::MetadataEdits,
     options: ExportOptions,
   ) -> u64 {
     let task_gen = self.cancel_current_tasks();
@@ -138,6 +139,10 @@ impl ImageWorker {
                 {
                   tracing::error!("Metadata cleaning failed: {}", e);
                 }
+              }
+
+              if let Err(e) = pixie_core::apply_metadata_edits(temp_file.path(), &metadata_edits) {
+                tracing::error!("Metadata edit apply failed: {}", e);
               }
 
               // Flush and sync

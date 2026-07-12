@@ -8,6 +8,41 @@ pub struct MetadataPolicy {
   pub remove_timestamps: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum MetadataValueEdit {
+  Keep,
+  Set(String),
+  Clear,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct MetadataEdits {
+  pub image_description: MetadataValueEdit,
+  pub artist: MetadataValueEdit,
+  pub copyright: MetadataValueEdit,
+  pub software: MetadataValueEdit,
+}
+
+impl Default for MetadataEdits {
+  fn default() -> Self {
+    Self {
+      image_description: MetadataValueEdit::Keep,
+      artist: MetadataValueEdit::Keep,
+      copyright: MetadataValueEdit::Keep,
+      software: MetadataValueEdit::Keep,
+    }
+  }
+}
+
+impl MetadataEdits {
+  pub fn is_noop(&self) -> bool {
+    self.image_description == MetadataValueEdit::Keep
+      && self.artist == MetadataValueEdit::Keep
+      && self.copyright == MetadataValueEdit::Keep
+      && self.software == MetadataValueEdit::Keep
+  }
+}
+
 impl MetadataPolicy {
   pub const fn strip_all() -> Self {
     Self {
@@ -147,6 +182,123 @@ pub fn clean_image_metadata(
   metadata
     .write_to_file(target_path)
     .map_err(|e| format!("Failed to write metadata to target image: {e}"))?;
+
+  Ok(())
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct MetadataFields {
+  pub image_description: Option<String>,
+  pub artist: Option<String>,
+  pub copyright: Option<String>,
+  pub software: Option<String>,
+}
+
+/// Read the current string metadata fields from an image file.
+/// Returns None for any field not present in the file.
+pub fn read_image_metadata_fields(path: &std::path::Path) -> MetadataFields {
+  let metadata = match little_exif::metadata::Metadata::new_from_path(path) {
+    Ok(m) => m,
+    Err(_) => return MetadataFields::default(),
+  };
+
+  let mut fields = MetadataFields::default();
+  for tag in &metadata {
+    let debug_str = format!("{:?}", tag);
+    let extract = |prefix: &str| -> Option<String> {
+      if debug_str.starts_with(prefix) {
+        // The Debug representation is like `Prefix("value")`, extract the inner string.
+        let inner = debug_str
+          .trim_start_matches(prefix)
+          .trim_start_matches('(')
+          .trim_end_matches(')');
+        // Strip surrounding quotes if present.
+        let s = inner.trim_matches('"');
+        if s.is_empty() {
+          None
+        } else {
+          Some(s.to_owned())
+        }
+      } else {
+        None
+      }
+    };
+    if let Some(v) = extract("ImageDescription") {
+      fields.image_description = Some(v);
+    } else if let Some(v) = extract("Artist") {
+      fields.artist = Some(v);
+    } else if let Some(v) = extract("Copyright") {
+      fields.copyright = Some(v);
+    } else if let Some(v) = extract("Software") {
+      fields.software = Some(v);
+    }
+  }
+  fields
+}
+
+/// Apply user-requested metadata edits directly on the exported target image.
+pub fn apply_metadata_edits(
+  target_path: &std::path::Path,
+  edits: &MetadataEdits,
+) -> Result<(), String> {
+  if edits.is_noop() {
+    return Ok(());
+  }
+
+  let mut metadata = little_exif::metadata::Metadata::new_from_path(target_path)
+    .unwrap_or_else(|_| little_exif::metadata::Metadata::new());
+
+  let apply_str_edit = |metadata: &mut little_exif::metadata::Metadata,
+                        edit: &MetadataValueEdit,
+                        make_tag: fn(String) -> little_exif::exif_tag::ExifTag,
+                        prefix: &str| {
+    match edit {
+      MetadataValueEdit::Keep => {}
+      MetadataValueEdit::Set(value) => {
+        metadata.set_tag(make_tag(value.clone()));
+      }
+      MetadataValueEdit::Clear => {
+        let p = prefix.to_owned();
+        let tags_to_remove: Vec<_> = (&*metadata)
+          .into_iter()
+          .filter(|tag| format!("{:?}", tag).starts_with(&p))
+          .cloned()
+          .collect();
+        for tag in tags_to_remove {
+          metadata.remove_tag(tag);
+        }
+      }
+    }
+  };
+
+  apply_str_edit(
+    &mut metadata,
+    &edits.image_description,
+    little_exif::exif_tag::ExifTag::ImageDescription,
+    "ImageDescription",
+  );
+  apply_str_edit(
+    &mut metadata,
+    &edits.artist,
+    little_exif::exif_tag::ExifTag::Artist,
+    "Artist",
+  );
+  apply_str_edit(
+    &mut metadata,
+    &edits.copyright,
+    little_exif::exif_tag::ExifTag::Copyright,
+    "Copyright",
+  );
+  apply_str_edit(
+    &mut metadata,
+    &edits.software,
+    little_exif::exif_tag::ExifTag::Software,
+    "Software",
+  );
+
+  metadata
+    .write_to_file(target_path)
+    .map_err(|e| format!("Failed to write edited metadata to target image: {e}"))?;
 
   Ok(())
 }

@@ -13,6 +13,7 @@ pub struct PixieDocument {
   original_format: ImageFormat,
   history: EditingHistory,
   pub metadata_policy: crate::metadata::MetadataPolicy,
+  pub metadata_edits: crate::metadata::MetadataEdits,
 }
 
 impl std::fmt::Debug for PixieDocument {
@@ -21,6 +22,7 @@ impl std::fmt::Debug for PixieDocument {
       .field("original_format", &self.original_format)
       .field("history", &self.history)
       .field("metadata_policy", &self.metadata_policy)
+      .field("metadata_edits", &self.metadata_edits)
       .finish()
   }
 }
@@ -33,6 +35,7 @@ impl PixieDocument {
       original_format,
       history: EditingHistory::new(),
       metadata_policy: crate::metadata::MetadataPolicy::default(),
+      metadata_edits: crate::metadata::MetadataEdits::default(),
     })
   }
 
