@@ -476,6 +476,7 @@ impl PixieWindow {
 
     let clean_action_btn = gtk4::Button::builder()
       .label("Clean Metadata")
+      .hexpand(true)
       .css_classes(["suggested-action", "pill"])
       .build();
     popover_box.append(&clean_action_btn);
@@ -1617,8 +1618,8 @@ impl PixieWindow {
 
     let apply_btn = gtk4::Button::builder()
       .label("Apply")
-      .halign(gtk4::Align::End)
-      .css_classes(["suggested-action"])
+      .hexpand(true)
+      .css_classes(["suggested-action", "pill"])
       .build();
     content.append(&apply_btn);
 

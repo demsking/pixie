@@ -336,7 +336,7 @@ impl ResizeToolView {
     let apply_btn = gtk4::Button::builder()
       .label("Resize")
       .hexpand(true)
-      .css_classes(["suggested-action"])
+      .css_classes(["suggested-action", "pill"])
       .build();
 
     btn_box.append(&apply_btn);
