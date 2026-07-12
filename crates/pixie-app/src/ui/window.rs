@@ -66,6 +66,15 @@ pub struct PixieWindow {
   properties_folder_label: gtk4::Label,
   properties_size_label: gtk4::Label,
   properties_format_label: gtk4::Label,
+  properties_aspect_ratio_label: gtk4::Label,
+  properties_comments_row: gtk4::ListBoxRow,
+  properties_comments_label: gtk4::Label,
+  properties_artist_row: gtk4::ListBoxRow,
+  properties_artist_label: gtk4::Label,
+  properties_copyright_row: gtk4::ListBoxRow,
+  properties_copyright_label: gtk4::Label,
+  properties_software_row: gtk4::ListBoxRow,
+  properties_software_label: gtk4::Label,
   properties_file_size_label: gtk4::Label,
   properties_created_label: gtk4::Label,
   properties_modified_label: gtk4::Label,
@@ -266,6 +275,36 @@ impl PixieWindow {
       .css_classes(["info-value"])
       .build();
 
+    let properties_aspect_ratio_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_comments_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_artist_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_copyright_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
+    let properties_software_label = gtk4::Label::builder()
+      .label("")
+      .halign(gtk4::Align::Start)
+      .css_classes(["info-value"])
+      .build();
+
     let properties_file_size_label = gtk4::Label::builder()
       .label("")
       .halign(gtk4::Align::Start)
@@ -369,13 +408,14 @@ impl PixieWindow {
       row
     };
 
-    // Group 2: Size, Format, File Size
+    // Group 2: Image details
     let listbox2 = gtk4::ListBox::builder()
       .selection_mode(gtk4::SelectionMode::None)
       .css_classes(["boxed-list"])
       .build();
     listbox2.append(&create_row("Image Size", &properties_size_label));
     listbox2.append(&create_row("Image Format", &properties_format_label));
+    listbox2.append(&create_row("Aspect Ratio", &properties_aspect_ratio_label));
     listbox2.append(&create_row("File Size", &properties_file_size_label));
     properties_popover_box.append(&listbox2);
 
@@ -387,6 +427,28 @@ impl PixieWindow {
     listbox3.append(&create_row("File Created", &properties_created_label));
     listbox3.append(&create_row("File Modified", &properties_modified_label));
     properties_popover_box.append(&listbox3);
+
+    // Group 4: Metadata
+    let listbox4 = gtk4::ListBox::builder()
+      .selection_mode(gtk4::SelectionMode::None)
+      .css_classes(["boxed-list"])
+      .build();
+    let properties_comments_row = create_row("Comments", &properties_comments_label);
+    properties_comments_row.set_visible(false);
+    listbox4.append(&properties_comments_row);
+
+    let properties_artist_row = create_row("Artist", &properties_artist_label);
+    properties_artist_row.set_visible(false);
+    listbox4.append(&properties_artist_row);
+
+    let properties_copyright_row = create_row("Copyright", &properties_copyright_label);
+    properties_copyright_row.set_visible(false);
+    listbox4.append(&properties_copyright_row);
+
+    let properties_software_row = create_row("Software", &properties_software_label);
+    properties_software_row.set_visible(false);
+    listbox4.append(&properties_software_row);
+    properties_popover_box.append(&listbox4);
 
     properties_popover.set_child(Some(&properties_popover_box));
 
@@ -613,6 +675,15 @@ impl PixieWindow {
       properties_folder_label: properties_folder_label.clone(),
       properties_size_label: properties_size_label.clone(),
       properties_format_label: properties_format_label.clone(),
+      properties_aspect_ratio_label: properties_aspect_ratio_label.clone(),
+      properties_comments_row: properties_comments_row.clone(),
+      properties_comments_label: properties_comments_label.clone(),
+      properties_artist_row: properties_artist_row.clone(),
+      properties_artist_label: properties_artist_label.clone(),
+      properties_copyright_row: properties_copyright_row.clone(),
+      properties_copyright_label: properties_copyright_label.clone(),
+      properties_software_row: properties_software_row.clone(),
+      properties_software_label: properties_software_label.clone(),
       properties_file_size_label: properties_file_size_label.clone(),
       properties_created_label: properties_created_label.clone(),
       properties_modified_label: properties_modified_label.clone(),
@@ -2200,6 +2271,18 @@ impl PixieWindow {
       };
       self.properties_size_label.set_label(&size_str);
 
+      if let Some(ref img) = self.canvas.state.borrow().image {
+        let width = img.width();
+        let height = img.height();
+
+        let aspect_ratio = if height > 0 {
+          format!("{:.2}:1", width as f64 / height as f64)
+        } else {
+          "Unknown".to_string()
+        };
+        self.properties_aspect_ratio_label.set_label(&aspect_ratio);
+      }
+
       if let Ok(metadata) = std::fs::metadata(path) {
         let len = metadata.len();
         let size_formatted = if len < 1024 {
@@ -2229,6 +2312,39 @@ impl PixieWindow {
         self.properties_created_label.set_label("Unknown");
         self.properties_modified_label.set_label("Unknown");
       }
+
+      let metadata_fields = pixie_core::read_image_metadata_fields(path);
+
+      let set_metadata_row = |row: &gtk4::ListBoxRow, label: &gtk4::Label, value: Option<&str>| {
+        if let Some(v) = value.map(str::trim).filter(|s| !s.is_empty()) {
+          label.set_label(v);
+          row.set_visible(true);
+        } else {
+          label.set_label("");
+          row.set_visible(false);
+        }
+      };
+
+      set_metadata_row(
+        &self.properties_comments_row,
+        &self.properties_comments_label,
+        metadata_fields.image_description.as_deref(),
+      );
+      set_metadata_row(
+        &self.properties_artist_row,
+        &self.properties_artist_label,
+        metadata_fields.artist.as_deref(),
+      );
+      set_metadata_row(
+        &self.properties_copyright_row,
+        &self.properties_copyright_label,
+        metadata_fields.copyright.as_deref(),
+      );
+      set_metadata_row(
+        &self.properties_software_row,
+        &self.properties_software_label,
+        metadata_fields.software.as_deref(),
+      );
     }
   }
 }
