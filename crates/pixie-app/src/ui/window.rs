@@ -336,15 +336,11 @@ impl PixieWindow {
       .build();
     let crop_cancel_btn = gtk4::Button::builder()
       .label("Cancel")
-      .css_classes(["floating-toolbar__button", "crop-action-btn"])
+      .css_classes(["floating-toolbar__button"])
       .build();
     let crop_apply_btn = gtk4::Button::builder()
       .label("Apply")
-      .css_classes([
-        "floating-toolbar__button",
-        "crop-action-btn",
-        "suggested-action",
-      ])
+      .css_classes(["floating-toolbar__button"])
       .build();
     crop_actions_bar.append(&crop_cancel_btn);
     crop_actions_bar.append(&crop_apply_btn);
