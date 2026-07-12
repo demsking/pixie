@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/pixie-core",
-    "crates/pixie-app",
+  "crates/pixie-core",
+  "crates/pixie-app",
 ]
 resolver = "2"
 
