@@ -19,7 +19,8 @@
     "glib.dev",
     "libadwaita@latest",
     "libadwaita.dev",
-    "mdbook@latest"
+    "mdbook@latest",
+    "flatpak-builder@latest"
   ],
   "shell": {
     "init_hook": [

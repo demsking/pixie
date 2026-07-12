@@ -69,6 +69,60 @@
         }
       }
     },
+    "flatpak-builder@latest": {
+      "last_modified": "2026-07-05T19:27:47Z",
+      "resolved": "github:NixOS/nixpkgs/f205b5574fd0cb7da5b702a2da51507b7f4fdd1b#flatpak-builder",
+      "source": "devbox-search",
+      "version": "1.4.4",
+      "systems": {
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/s14cjwj3ifpx2lzrx3diy0n7pp4rydn4-flatpak-builder-1.4.4",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/0g9qlcm45bidc23xv7fvz4pxlz0xrk4v-flatpak-builder-1.4.4-man",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/6fgza36am8dgkw4h0lpa4risfs073nwl-flatpak-builder-1.4.4-doc"
+            },
+            {
+              "name": "installedTests",
+              "path": "/nix/store/8fiwm2gzp57pjm86vkhhsi67ap5myd2c-flatpak-builder-1.4.4-installedTests"
+            }
+          ],
+          "store_path": "/nix/store/s14cjwj3ifpx2lzrx3diy0n7pp4rydn4-flatpak-builder-1.4.4"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/s4fqc6x04z1nniaim8zfn09108a1lsdk-flatpak-builder-1.4.4",
+              "default": true
+            },
+            {
+              "name": "man",
+              "path": "/nix/store/dfqlccf4as39r9847jdfvb6wqhpxkvz7-flatpak-builder-1.4.4-man",
+              "default": true
+            },
+            {
+              "name": "doc",
+              "path": "/nix/store/5x9hp66zvxamhnrs8765fpldmwxhvyzw-flatpak-builder-1.4.4-doc"
+            },
+            {
+              "name": "installedTests",
+              "path": "/nix/store/h542w7xxk8asjxp8v431ngyay62zg7pr-flatpak-builder-1.4.4-installedTests"
+            }
+          ],
+          "store_path": "/nix/store/s4fqc6x04z1nniaim8zfn09108a1lsdk-flatpak-builder-1.4.4"
+        }
+      }
+    },
     "git@latest": {
       "last_modified": "2026-07-05T19:27:47Z",
       "resolved": "github:NixOS/nixpkgs/f205b5574fd0cb7da5b702a2da51507b7f4fdd1b#git",

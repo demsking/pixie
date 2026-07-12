@@ -65,17 +65,18 @@ build-release:
 flatpak:
   stage: package
   image: alpine:latest
+  only:
+    - main
   before_script:
     - apk add --no-cache flatpak-builder
   script:
     - echo "Validating flatpak manifest..."
-    - flatpak-builder --dry-run build packaging/flatpak/io.gitlab.demsking.Pixie.json
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
+    - flatpak-builder --show-manifest packaging/flatpak/io.gitlab.demsking.Pixie.json > /dev/null
 
 pages:
   stage: documentation
-
+  only:
+    - tags
   before_script:
     - apt-get update -yq && apt-get install -y --no-install-recommends libgtk-4-dev libadwaita-1-dev pkg-config make
     - cargo install mdbook
@@ -84,5 +85,3 @@ pages:
   artifacts:
     paths:
       - public
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
