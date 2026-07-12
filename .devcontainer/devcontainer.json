@@ -14,7 +14,10 @@
         "tamasfe.even-better-toml",
         "serayuzgur.crates",
         "vadimcn.vscode-lldb",
-        "editorconfig.editorconfig"
+        "editorconfig.editorconfig",
+        "jinxdash.prettier-rust",
+        "EditorConfig.EditorConfig",
+        "fill-labs.dependi"
       ]
     }
   },
