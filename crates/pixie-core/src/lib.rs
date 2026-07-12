@@ -20,7 +20,7 @@ pub use encoding::{ExportOptions, encode_image};
 pub use errors::{CoreError, Result};
 pub use formats::ImageFormat;
 pub use history::EditingHistory;
-pub use metadata::MetadataPolicy;
+pub use metadata::{MetadataPolicy, clean_image_metadata};
 pub use pipeline::OperationPipeline;
 
 pub use operations::{

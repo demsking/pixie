@@ -99,6 +99,8 @@ impl ImageWorker {
     &self,
     img: DynamicImage,
     file_path: std::path::PathBuf,
+    original_path: Option<std::path::PathBuf>,
+    metadata_policy: pixie_core::MetadataPolicy,
     options: ExportOptions,
   ) -> u64 {
     let task_gen = self.cancel_current_tasks();
@@ -127,6 +129,16 @@ impl ImageWorker {
           match pixie_core::encode_image(&img, &mut temp_file, &options) {
             Ok(()) => {
               let _ = sender.send_blocking((task_gen, WorkerOutput::Progress(0.8)));
+
+              // Apply metadata policy before finalizing!
+              if let Some(ref orig_p) = original_path {
+                let temp_path = temp_file.path();
+                if let Err(e) =
+                  pixie_core::clean_image_metadata(orig_p, temp_path, &metadata_policy)
+                {
+                  tracing::error!("Metadata cleaning failed: {}", e);
+                }
+              }
 
               // Flush and sync
               if let Ok(()) = temp_file.as_file_mut().sync_all() {

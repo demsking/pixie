@@ -28,6 +28,7 @@ pub struct PixieWindow {
   current_file_path: Rc<RefCell<Option<PathBuf>>>,
   worker: Rc<ImageWorker>,
   saved_history_index: Rc<std::cell::Cell<Option<usize>>>,
+  saved_metadata_policy: Rc<std::cell::Cell<pixie_core::MetadataPolicy>>,
   force_close: Rc<std::cell::Cell<bool>>,
   alt_pressed: std::cell::Cell<bool>,
   pub resize_to_image_on_load: std::cell::Cell<bool>,
@@ -44,6 +45,7 @@ pub struct PixieWindow {
   toast_overlay: adw::ToastOverlay,
   crop_btn: gtk4::ToggleButton,
   resize_btn: gtk4::ToggleButton,
+  metadata_btn: gtk4::MenuButton,
   rotate_btn: gtk4::Button,
   mirror_btn: gtk4::Button,
   flip_btn: gtk4::Button,
@@ -138,6 +140,13 @@ impl PixieWindow {
     let resize_btn = gtk4::ToggleButton::builder()
       .icon_name("zoom-fit-best-symbolic")
       .tooltip_text("Resize Image")
+      .sensitive(false)
+      .css_classes(["floating-toolbar__button"])
+      .build();
+
+    let metadata_btn = gtk4::MenuButton::builder()
+      .icon_name("security-high-symbolic")
+      .tooltip_text("Metadata Cleaner")
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
@@ -297,6 +306,7 @@ impl PixieWindow {
 
     tool_bar.append(&crop_btn);
     tool_bar.append(&resize_btn);
+    tool_bar.append(&metadata_btn);
     tool_bar.append(&rotate_btn);
     tool_bar.append(&mirror_btn);
     tool_bar.append(&flip_btn);
@@ -359,6 +369,8 @@ impl PixieWindow {
     let folder_images: Rc<RefCell<Vec<PathBuf>>> = Rc::new(RefCell::new(Vec::new()));
     let folder_index: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
     let saved_history_index = Rc::new(std::cell::Cell::new(None));
+    let saved_metadata_policy =
+      Rc::new(std::cell::Cell::new(pixie_core::MetadataPolicy::default()));
     let force_close = Rc::new(std::cell::Cell::new(false));
     let active_toasts = Rc::new(RefCell::new(Vec::<adw::Toast>::new()));
 
@@ -371,6 +383,7 @@ impl PixieWindow {
       current_file_path: current_file_path.clone(),
       worker: worker.clone(),
       saved_history_index: saved_history_index.clone(),
+      saved_metadata_policy: saved_metadata_policy.clone(),
       force_close: force_close.clone(),
       alt_pressed: std::cell::Cell::new(false),
       resize_to_image_on_load: std::cell::Cell::new(false),
@@ -381,6 +394,7 @@ impl PixieWindow {
       toast_overlay: toast_overlay.clone(),
       crop_btn: crop_btn.clone(),
       resize_btn: resize_btn.clone(),
+      metadata_btn: metadata_btn.clone(),
       rotate_btn: rotate_btn.clone(),
       mirror_btn: mirror_btn.clone(),
       flip_btn: flip_btn.clone(),
@@ -394,6 +408,154 @@ impl PixieWindow {
       zoom_badge_btn: zoom_badge_btn.clone(),
       scrolled: scrolled.clone(),
       stack: stack.clone(),
+    });
+
+    // ── Metadata Cleaner Popover Setup ──────────────────────────────────
+    let metadata_popover = gtk4::Popover::new();
+
+    let popover_box = gtk4::Box::builder()
+      .orientation(gtk4::Orientation::Vertical)
+      .spacing(8)
+      .margin_top(12)
+      .margin_bottom(12)
+      .margin_start(12)
+      .margin_end(12)
+      .width_request(240)
+      .build();
+
+    let title_label = gtk4::Label::builder()
+      .label("Metadata Cleaner")
+      .halign(gtk4::Align::Start)
+      .css_classes(["title-4"])
+      .build();
+    popover_box.append(&title_label);
+
+    let all_metadata_check = gtk4::CheckButton::builder()
+      .label("All EXIF and related metadata")
+      .active(false)
+      .build();
+
+    let gps_check = gtk4::CheckButton::builder()
+      .label("GPS coordinates")
+      .active(true)
+      .build();
+
+    let camera_check = gtk4::CheckButton::builder()
+      .label("Camera models & specs")
+      .active(true)
+      .build();
+
+    let timestamp_check = gtk4::CheckButton::builder()
+      .label("Timestamps & dates")
+      .active(true)
+      .build();
+
+    let comment_check = gtk4::CheckButton::builder()
+      .label("Comments & software")
+      .active(true)
+      .build();
+
+    popover_box.append(&all_metadata_check);
+    popover_box.append(&gps_check);
+    popover_box.append(&camera_check);
+    popover_box.append(&timestamp_check);
+    popover_box.append(&comment_check);
+
+    let clean_action_btn = gtk4::Button::builder()
+      .label("Clean Metadata")
+      .css_classes(["suggested-action", "pill"])
+      .build();
+    popover_box.append(&clean_action_btn);
+
+    metadata_popover.set_child(Some(&popover_box));
+    win_struct.metadata_btn.set_popover(Some(&metadata_popover));
+
+    // When the popover opens, sync checkboxes with the document's current policy
+    let gps_check_map = gps_check.clone();
+    let camera_check_map = camera_check.clone();
+    let timestamp_check_map = timestamp_check.clone();
+    let comment_check_map = comment_check.clone();
+    let all_metadata_check_map = all_metadata_check.clone();
+    let win_map = win_struct.clone();
+    metadata_popover.connect_map(move |_| {
+      let doc_borrow = win_map.document.borrow();
+      if let Some(ref doc) = *doc_borrow {
+        all_metadata_check_map.set_active(doc.metadata_policy.remove_all_metadata);
+        gps_check_map.set_active(doc.metadata_policy.remove_gps);
+        camera_check_map.set_active(doc.metadata_policy.remove_camera_info);
+        timestamp_check_map.set_active(doc.metadata_policy.remove_timestamps);
+        comment_check_map.set_active(doc.metadata_policy.remove_comments);
+
+        let per_category_sensitive = !doc.metadata_policy.remove_all_metadata;
+        gps_check_map.set_sensitive(per_category_sensitive);
+        camera_check_map.set_sensitive(per_category_sensitive);
+        timestamp_check_map.set_sensitive(per_category_sensitive);
+        comment_check_map.set_sensitive(per_category_sensitive);
+      }
+    });
+
+    // "Strip all" disables granular toggles, while preserving their selected state.
+    let gps_check_all = gps_check.clone();
+    let camera_check_all = camera_check.clone();
+    let timestamp_check_all = timestamp_check.clone();
+    let comment_check_all = comment_check.clone();
+    all_metadata_check.connect_toggled(move |btn| {
+      let per_category_sensitive = !btn.is_active();
+      gps_check_all.set_sensitive(per_category_sensitive);
+      camera_check_all.set_sensitive(per_category_sensitive);
+      timestamp_check_all.set_sensitive(per_category_sensitive);
+      comment_check_all.set_sensitive(per_category_sensitive);
+    });
+
+    // When clicking the clean button, update the policy and toast the user
+    let win_clean = win_struct.clone();
+    let all_metadata_check_clean = all_metadata_check.clone();
+    let gps_check_clean = gps_check.clone();
+    let camera_check_clean = camera_check.clone();
+    let timestamp_check_clean = timestamp_check.clone();
+    let comment_check_clean = comment_check.clone();
+    let popover_clean = metadata_popover.clone();
+
+    clean_action_btn.connect_clicked(move |_| {
+      let mut doc_borrow = win_clean.document.borrow_mut();
+      if let Some(ref mut doc) = *doc_borrow {
+        let policy = pixie_core::MetadataPolicy {
+          remove_all_metadata: all_metadata_check_clean.is_active(),
+          remove_gps: gps_check_clean.is_active(),
+          remove_camera_info: camera_check_clean.is_active(),
+          remove_comments: comment_check_clean.is_active(),
+          remove_timestamps: timestamp_check_clean.is_active(),
+        };
+        doc.metadata_policy = policy;
+
+        if policy.remove_all_metadata {
+          win_clean.show_toast("All EXIF and related metadata will be removed on Save/Convert.");
+        } else {
+          let mut parts = Vec::new();
+          if policy.remove_gps {
+            parts.push("GPS");
+          }
+          if policy.remove_camera_info {
+            parts.push("Camera Info");
+          }
+          if policy.remove_timestamps {
+            parts.push("Timestamps");
+          }
+          if policy.remove_comments {
+            parts.push("Comments");
+          }
+
+          if parts.is_empty() {
+            win_clean.show_toast("Metadata policy updated: preserve all.");
+          } else {
+            win_clean.show_toast(&format!(
+              "Metadata marked for removal: {}. Save to apply.",
+              parts.join(", ")
+            ));
+          }
+        }
+      }
+      popover_clean.popdown();
     });
 
     let win_open_btn = win_struct.clone();
@@ -936,6 +1098,7 @@ impl PixieWindow {
         let doc = PixieDocument::open(&std::fs::read(path.as_ref().unwrap()).unwrap()).unwrap(); // safe re-decoding context
         self.undo_btn.set_sensitive(doc.history().can_undo());
         self.redo_btn.set_sensitive(doc.history().can_redo());
+        self.saved_metadata_policy.set(doc.metadata_policy);
         *self.document.borrow_mut() = Some(doc);
         self.saved_history_index.set(Some(0));
         self.force_close.set(false);
@@ -1022,6 +1185,7 @@ impl PixieWindow {
         if Some(&path) == self.current_file_path.borrow().as_ref() {
           if let Some(ref doc) = *self.document.borrow() {
             self.saved_history_index.set(Some(doc.history().len()));
+            self.saved_metadata_policy.set(doc.metadata_policy);
           }
         }
       }
@@ -1038,6 +1202,7 @@ impl PixieWindow {
   fn enable_sidebar_toggles(&self, enable: bool) {
     self.crop_btn.set_sensitive(enable);
     self.resize_btn.set_sensitive(enable);
+    self.metadata_btn.set_sensitive(enable);
     self.rotate_btn.set_sensitive(enable);
     self.mirror_btn.set_sensitive(enable);
     self.flip_btn.set_sensitive(enable);
@@ -1230,7 +1395,11 @@ impl PixieWindow {
       let current = doc.current_image().unwrap();
       self.progress_bar.set_visible(true);
       self.progress_bar.set_fraction(0.0);
-      self.worker.spawn_export(current, path, options);
+      let original_path = self.current_file_path.borrow().clone();
+      let policy = doc.metadata_policy;
+      self
+        .worker
+        .spawn_export(current, path, original_path, policy, options);
     }
   }
 
@@ -1458,7 +1627,7 @@ impl PixieWindow {
     let doc_borrow = self.document.borrow();
     if let Some(ref doc) = *doc_borrow {
       if let Some(saved_idx) = self.saved_history_index.get() {
-        doc.history().len() != saved_idx
+        doc.history().len() != saved_idx || doc.metadata_policy != self.saved_metadata_policy.get()
       } else {
         false
       }
