@@ -8,9 +8,14 @@
     "git@latest",
     "zlib@latest",
     "rustc@latest",
-    "cargo@latest"
+    "cargo@latest",
+    "shellcheck@latest"
   ],
   "shell": {
+    "init_hook": [
+      "pre-commit install -f",
+      "make bootstrap"
+    ],
     "scripts": {
       "bootstrap":  "make bootstrap",
       "build":      "make build",
