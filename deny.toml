@@ -7,12 +7,7 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 unmaintained = "workspace"
 unsound = "all"
 yanked = "deny"
-ignore = [
-    # Transitive via little_exif -> quick-xml (^0.37.5). No compatible patched
-    # release is currently selectable without replacing little_exif.
-    "RUSTSEC-2026-0194",
-    "RUSTSEC-2026-0195",
-]
+ignore = []
 
 [licenses]
 allow = [
