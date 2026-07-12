@@ -193,10 +193,11 @@ pages:
   before_script: []
   pages: true
   script:
-    - ls -la pages/
+    - mv pages public
+    - ls -la public/
   artifacts:
     paths:
-      - pages
+      - public
   rules:
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
 
