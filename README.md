@@ -10,7 +10,7 @@ Pixie is a modern, secure, and lightweight GTK4 image processor built with Rust.
 It provides focused tools for cropping, resizing, rotating, flipping, and
 converting images without the complexity of a complete graphics editor.
 
-![Screenshot Placeholder](logo.png)
+![Screenshot Placeholder](pages/logo.png)
 
 ## Features
 
@@ -53,6 +53,7 @@ make run
 ### 2. Manual Setup (Without Devbox)
 
 #### Fedora Setup
+
 ```bash
 sudo dnf install gtk4-devel libadwaita-devel pkgconf make rustup
 rustup-init
@@ -60,6 +61,7 @@ make bootstrap
 ```
 
 #### Debian or Ubuntu Setup
+
 ```bash
 sudo apt install libgtk-4-dev libadwaita-1-dev pkg-config make rustup
 rustup-init
@@ -67,6 +69,7 @@ make bootstrap
 ```
 
 ### 3. Flatpak Setup
+
 ```bash
 make flatpak-build
 make flatpak-run

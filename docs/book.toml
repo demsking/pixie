@@ -1,8 +1,0 @@
-[book]
-title = "Pixie — Modern Image Processor"
-authors = ["Sébastien Demanou"]
-description = "Documentation for Pixie - Modern Image Processor"
-src = "."
-
-[output.html]
-git-repository-url = "https://gitlab.com/demsking/pixie"

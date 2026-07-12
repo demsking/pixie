@@ -89,22 +89,9 @@ deny: ## Check licenses and duplicate dependencies
 .PHONY: security
 security: audit deny ## Run security audits (audit + deny)
 
-.PHONY: docs
-docs: docs-build ## Alias for docs-build
-
-.PHONY: docs-build
-docs-build: ## Build mdBook and rustdoc and put in public/
-	rm -rf public/ docs/book/ target/doc/
-	mdbook build docs
-	cargo doc --workspace --no-deps --all-features
-	mkdir -p public/
-	cp -r docs/book/* public/
-	mkdir -p public/api
-	cp -r target/doc/* public/api/
-
-.PHONY: docs-serve
-docs-serve: ## Serve documentation locally
-	mdbook serve docs
+.PHONY: pages
+pages: ## Serve documentation locally
+	serve pages
 
 .PHONY: clean
 clean: ## Clean cargo target folder

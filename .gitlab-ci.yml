@@ -186,33 +186,11 @@ build-flatpak-bundle:
   rules:
     - if: "$CI_COMMIT_TAG"
 
-build-documentation:
-  extends: .install-cargo-tool
-  stage: documentation
-  before_script:
-    - !reference [.install-cargo-tool, before_script]
-    - >
-      if ! command -v mdbook >/dev/null; then
-        cargo install --locked mdbook;
-      fi
-  script:
-    - make docs-build
-  artifacts:
-    paths:
-      - public
-  rules:
-    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
-
 pages:
   stage: documentation
   image: alpine:latest
-  needs:
-    - job: build-documentation
-      artifacts: true
   cache: []
   before_script: []
-  script:
-    - test -f public/index.html
   pages: true
   artifacts:
     paths:

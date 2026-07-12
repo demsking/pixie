@@ -110,7 +110,7 @@ make update         - Update dependencies
 make lint           - Run Clippy checks
 make fmt            - Format codebase
 make security       - Run cargo-audit and cargo-deny checks
-make docs-build     - Compile mdBook and API docs
+make pages          - Serve Pixie's landing page locally
 make shell          - Start tmuxinator workspace
 ```
 

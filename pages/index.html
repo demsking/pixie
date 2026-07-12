@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixie — Modern & Secure Image Processor</title>
+    <meta
+      name="description"
+      content="A modern, secure, and lightweight GTK4 image processor built with Rust. Crop, resize, rotate, and strip metadata with privacy-focused defaults."
+    />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <header class="navbar">
+      <div class="nav-container">
+        <a href="#" class="nav-logo">
+          <img src="favicon.png" alt="Pixie Logo" class="logo-img" />
+          <span class="logo-text">Pixie</span>
+        </a>
+        <nav class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#install">Installation</a>
+          <a href="#security">Privacy &amp; Security</a>
+        </nav>
+        <div class="nav-actions">
+          <a
+            href="https://gitlab.com/demsking/pixie"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-secondary nav-git-btn"
+          >
+            <svg
+              class="icon-gitlab"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="currentColor"
+            >
+              <path
+                d="M22.65 14.39L20 6.21a.48.48 0 0 0-.17-.26.46.46 0 0 0-.31-.08.48.48 0 0 0-.29.12.42.42 0 0 0-.12.28L18 12H6L4.89 6.27a.42.42 0 0 0-.12-.28.48.48 0 0 0-.29-.12.46.46 0 0 0-.31.08.48.48 0 0 0-.17.26L1.35 14.39a.83.83 0 0 0 .3.94l10.13 7.37a.41.41 0 0 0 .44 0l10.13-7.37a.83.83 0 0 0 .3-.94z"
+              />
+            </svg>
+            Repository
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section hero-centered">
+      <div class="hero-background-gradient"></div>
+      <div class="hero-container">
+        <div class="hero-content">
+          <img src="logo.png" alt="Pixie Icon" class="hero-app-logo" />
+          <div class="hero-badge">
+            <span class="badge-dot"></span> Built with Rust &amp; GTK4
+          </div>
+          <h1 class="hero-title">
+            Modern image processing. <br /><span class="gradient-text"
+              >Without the complexity.</span
+            >
+          </h1>
+          <p class="hero-subtitle">
+            Pixie is a lightweight, secure, and privacy-focused image editor
+            designed for GNOME. Crop, resize, rotate, and strip metadata with
+            non-destructive speed and safe defaults.
+          </p>
+          <div class="hero-actions">
+            <a href="#install" class="btn btn-primary btn-large"
+              >Install from Flathub</a
+            >
+            <a
+              href="https://gitlab.com/demsking/pixie"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn btn-outline btn-large"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="currentColor"
+                style="vertical-align: middle; margin-right: 6px"
+              >
+                <path
+                  d="M22.65 14.39L20 6.21a.48.48 0 0 0-.17-.26.46.46 0 0 0-.31-.08.48.48 0 0 0-.29.12.42.42 0 0 0-.12.28L18 12H6L4.89 6.27a.42.42 0 0 0-.12-.28.48.48 0 0 0-.29-.12.46.46 0 0 0-.31.08.48.48 0 0 0-.17.26L1.35 14.39a.83.83 0 0 0 .3.94l10.13 7.37a.41.41 0 0 0 .44 0l10.13-7.37a.83.83 0 0 0 .3-.94z"
+                />
+              </svg>
+              Source Code
+            </a>
+          </div>
+
+          <div class="hero-formats">
+            <span class="formats-label">Supported Formats:</span>
+            <div class="formats-list">
+              <span class="format-badge">PNG</span>
+              <span class="format-badge">JPEG</span>
+              <span class="format-badge">WebP</span>
+              <span class="format-badge">AVIF</span>
+              <span class="format-badge">TIFF</span>
+              <span class="format-badge">BMP</span>
+              <span class="format-badge">GIF</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Grid Section -->
+    <section id="features" class="section features-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Designed for focus, speed, and safety.</h2>
+          <p class="section-subtitle">
+            No bloated graphics suites. Pixie offers highly refined features
+            optimized for daily workflows.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <!-- Feature 1 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-primary-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="3" y1="15" x2="21" y2="15" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Interactive Crop</h3>
+            <p class="feature-card-text">
+              Free-form crop or lock to standard ratios (1:1, 16:9, 4:3, etc.).
+              Use the built-in rule-of-thirds grid for perfectly composed
+              results.
+            </p>
+          </div>
+
+          <!-- Feature 2 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-success-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Privacy Protection</h3>
+            <p class="feature-card-text">
+              Every image processed automatically strips EXIF data, GPS
+              coordinates, camera models, and history parameters to protect your
+              location and identity.
+            </p>
+          </div>
+
+          <!-- Feature 3 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-warning-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Non-Destructive Pipeline</h3>
+            <p class="feature-card-text">
+              Edits are compiled as a sequence of mathematical operations.
+              Adjust or revert parameters at any step, with full-res rendering
+              happening lazily on export.
+            </p>
+          </div>
+
+          <!-- Feature 4 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-danger-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Bomb-Proof Decoding</h3>
+            <p class="feature-card-text">
+              Pixie verifies headers and dimensions prior to reading the canvas
+              buffer, protecting your hardware from dangerous decompression bomb
+              exploits.
+            </p>
+          </div>
+
+          <!-- Feature 5 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-purple-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
+                <path d="M7 10h10M12 5v14" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Lanczos3 Interpolation</h3>
+            <p class="feature-card-text">
+              Aspect ratio locked scaling preventing enlargement. Leverages
+              top-tier Lanczos3 filter interpolation for sharp and artifact-free
+              resizing.
+            </p>
+          </div>
+
+          <!-- Feature 6 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-info-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Native Libadwaita</h3>
+            <p class="feature-card-text">
+              Conforms cleanly to the GNOME Human Interface Guidelines.
+              Perfectly adapts to desktop dark/light mode configurations and
+              touch gestures.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="section install-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Install from Flathub</h2>
+          <p class="section-subtitle">
+            Pixie is officially distributed via Flathub, the universal app store
+            for Linux.
+          </p>
+        </div>
+
+        <div class="install-flatpak-container">
+          <div class="flatpak-details">
+            <div class="flatpak-info-card">
+              <h4>Get it on Flathub</h4>
+              <p style="margin-bottom: 16px">
+                Install Pixie directly from Flathub to ensure you receive the
+                latest sandboxed updates automatically.
+              </p>
+              <a
+                href="https://flathub.org/apps/io.gitlab.demsking.Pixie"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary"
+                style="gap: 10px"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M12 2L2 7v10l10 5 10-5V7L12 2zm8 14.25l-8 4-8-4V8.75l8-4 8 4v7.5z"
+                  />
+                </svg>
+                Download on Flathub
+              </a>
+            </div>
+          </div>
+
+          <div class="code-terminal">
+            <div class="terminal-header">
+              <span class="terminal-dot red"></span>
+              <span class="terminal-dot yellow"></span>
+              <span class="terminal-dot green"></span>
+              <span class="terminal-title">Bash Terminal</span>
+              <button class="copy-btn" data-clipboard-target="#flatpak-code">
+                Copy
+              </button>
+            </div>
+            <pre
+              class="terminal-content"
+            ><code id="flatpak-code"><span><span class="cmd-prompt">$</span> <span class="cmd-line">flatpak install flathub io.gitlab.demsking.Pixie</span></span>
+<span><span class="cmd-prompt">$</span> <span class="cmd-line">flatpak run io.gitlab.demsking.Pixie</span></span></code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Security & Privacy Section -->
+    <section id="security" class="section security-section">
+      <div class="container flex-row-responsive">
+        <div class="security-text">
+          <h2 class="section-title">
+            Designed with deep security and privacy principles.
+          </h2>
+          <div class="security-points">
+            <div class="security-point">
+              <div class="security-point-number">01</div>
+              <div>
+                <h4>Rust Memory Safety</h4>
+                <p>
+                  Built completely in Rust, Pixie prevents common memory
+                  corruption vulnerabilities (such as buffer overflows or
+                  dangling pointers) that frequently plague native C/C++ image
+                  decoders.
+                </p>
+              </div>
+            </div>
+            <div class="security-point">
+              <div class="security-point-number">02</div>
+              <div>
+                <h4>Zero Metadata Footprint</h4>
+                <p>
+                  By default, Pixie strips EXIF, GPS coordinates, timestamps,
+                  editing tools, and camera details upon exporting, ensuring you
+                  never accidentally share tracking coordinates.
+                </p>
+              </div>
+            </div>
+            <div class="security-point">
+              <div class="security-point-number">03</div>
+              <div>
+                <h4>Decompression Bomb Shielding</h4>
+                <p>
+                  Before allocating GPU/CPU memory for a full canvas, Pixie
+                  inspects header byte data to prevent pixel ratios from
+                  exceeding physical bounds, shielding you from memory
+                  exhaustion crashes.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="security-visual">
+          <div class="shield-graphic-container">
+            <div class="shield-ring outer"></div>
+            <div class="shield-ring middle"></div>
+            <div class="shield-ring inner"></div>
+            <div class="shield-card">
+              <svg
+                class="shield-glow-icon"
+                viewBox="0 0 24 24"
+                width="72"
+                height="72"
+                fill="currentColor"
+              >
+                <path
+                  d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
+                />
+              </svg>
+              <div class="shield-status-text">SECURE PIPELINE</div>
+              <div class="shield-pulse-dot"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-info">
+            <div class="footer-logo">
+              <img src="favicon.png" alt="Pixie Logo" />
+              <span>Pixie</span>
+            </div>
+            <p class="footer-desc">
+              Modern, secure, and lightweight image editor built with GTK4 and
+              Rust.
+            </p>
+          </div>
+          <div class="footer-links-col">
+            <h5>Project</h5>
+            <a
+              href="https://gitlab.com/demsking/pixie"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Source Code
+            </a>
+            <a
+              href="https://gitlab.com/demsking/pixie/-/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Issue Tracker
+            </a>
+          </div>
+          <div class="footer-links-col">
+            <h5>Ecosystem</h5>
+            <a
+              href="https://gnome.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GNOME Desktop
+            </a>
+            <a
+              href="https://libadwaita.pages.gitlab.gnome.org/libadwaita/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Libadwaita
+            </a>
+            <a
+              href="https://www.rust-lang.org"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Rust Language
+            </a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p class="copyright">
+            &copy; 2026 Sébastien Demanou. Released under the GNU GPL v3
+            License.
+          </p>
+          <p class="attribution">
+            Web design crafted for Pixie's official documentation.
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+  </body>
+</html>
