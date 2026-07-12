@@ -1,0 +1,7 @@
+[advisories]
+# Temporary exception:
+# - RUSTSEC-2024-0436 (`paste` unmaintained) is currently pulled transitively
+#   via `image -> ravif -> rav1e -> paste` for AVIF support.
+# - Keep this ignore only until upstream provides a maintained replacement path.
+# - Tracked in contributor docs and should be revisited during dependency updates.
+ignore = ["RUSTSEC-2024-0436"]
