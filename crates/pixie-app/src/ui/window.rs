@@ -293,10 +293,10 @@ impl PixieWindow {
     let properties_popover_box = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Vertical)
       .spacing(12)
-      .margin_top(12)
-      .margin_bottom(12)
-      .margin_start(12)
-      .margin_end(12)
+      .margin_top(6)
+      .margin_bottom(6)
+      .margin_start(6)
+      .margin_end(6)
       .width_request(260)
       .build();
 
