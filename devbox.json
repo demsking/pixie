@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/jetify-templates/devbox/main/.schema/devbox.schema.json",
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.17.5/.schema/devbox.schema.json",
   "packages": [
     "pre-commit@latest",
     "tmux@latest",
@@ -9,7 +9,19 @@
     "zlib@latest",
     "rustc@latest",
     "cargo@latest",
-    "shellcheck@latest"
+    "shellcheck@latest",
+    "rustfmt@latest",
+    "rustup@latest",
+    "pkg-config@latest",
+    "gtk4@latest",
+    "gtk4.dev",
+    "graphene@latest",
+    "graphene.dev",
+    "dav1d@latest",
+    "dav1d.dev",
+    "glib.dev",
+    "libadwaita@latest",
+    "libadwaita.dev"
   ],
   "shell": {
     "init_hook": [
@@ -17,16 +29,16 @@
       "make bootstrap"
     ],
     "scripts": {
-      "bootstrap":  "make bootstrap",
-      "build":      "make build",
-      "check":      "make check",
-      "test":       "make test-all",
-      "lint":       "make lint",
-      "run":        "make run",
-      "docs":       "make docs-build",
+      "bootstrap": "make bootstrap",
+      "build": "make build",
+      "check": "make check",
+      "test": "make test-all",
+      "lint": "make lint",
+      "run": "make run",
+      "docs": "make docs-build",
       "docs-serve": "make docs-serve",
-      "flatpak":    "make flatpak-build",
-      "ci":         "make ci"
+      "flatpak": "make flatpak-build",
+      "ci": "make ci"
     }
   }
 }
