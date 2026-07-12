@@ -4,6 +4,7 @@ use crate::operations::ImageOperation;
 pub struct EditingHistory {
   operations: Vec<ImageOperation>,
   index: usize,
+  revision: u64,
 }
 
 impl EditingHistory {
@@ -11,6 +12,7 @@ impl EditingHistory {
     Self {
       operations: Vec::new(),
       index: 0,
+      revision: 0,
     }
   }
 
@@ -19,11 +21,13 @@ impl EditingHistory {
     self.operations.truncate(self.index);
     self.operations.push(op);
     self.index += 1;
+    self.revision += 1;
   }
 
   pub fn undo(&mut self) -> bool {
     if self.index > 0 {
       self.index -= 1;
+      self.revision += 1;
       true
     } else {
       false
@@ -33,6 +37,7 @@ impl EditingHistory {
   pub fn redo(&mut self) -> bool {
     if self.index < self.operations.len() {
       self.index += 1;
+      self.revision += 1;
       true
     } else {
       false
@@ -48,8 +53,12 @@ impl EditingHistory {
   }
 
   pub fn reset(&mut self) {
+    if self.operations.is_empty() && self.index == 0 {
+      return;
+    }
     self.operations.clear();
     self.index = 0;
+    self.revision += 1;
   }
 
   pub fn operations(&self) -> &[ImageOperation] {
@@ -62,6 +71,10 @@ impl EditingHistory {
 
   pub fn is_empty(&self) -> bool {
     self.index == 0
+  }
+
+  pub fn revision(&self) -> u64 {
+    self.revision
   }
 }
 

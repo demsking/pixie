@@ -1,6 +1,9 @@
 use image::DynamicImage;
 use pixie_core::{CoreError, ExportOptions, ImageFormat, ImageOperation};
-use std::sync::{Arc, Mutex};
+use std::sync::{
+  Arc,
+  atomic::{AtomicU64, Ordering},
+};
 use std::thread;
 
 pub enum WorkerOutput {
@@ -10,6 +13,7 @@ pub enum WorkerOutput {
     format: ImageFormat,
   },
   OperationApplied {
+    op: ImageOperation,
     img: DynamicImage,
   },
   Exported {
@@ -19,22 +23,24 @@ pub enum WorkerOutput {
 }
 
 pub struct ImageWorker {
-  generation: Arc<Mutex<u64>>,
+  generation: Arc<AtomicU64>,
   sender: async_channel::Sender<(u64, WorkerOutput)>,
 }
 
 impl ImageWorker {
   pub fn new(sender: async_channel::Sender<(u64, WorkerOutput)>) -> Self {
     Self {
-      generation: Arc::new(Mutex::new(0)),
+      generation: Arc::new(AtomicU64::new(0)),
       sender,
     }
   }
 
   pub fn cancel_current_tasks(&self) -> u64 {
-    let mut generation = self.generation.lock().unwrap();
-    *generation += 1;
-    *generation
+    self.generation.fetch_add(1, Ordering::SeqCst) + 1
+  }
+
+  pub fn is_current(&self, task_gen: u64) -> bool {
+    is_current(&self.generation, task_gen)
   }
 
   pub fn spawn_decode(&self, path: std::path::PathBuf) -> u64 {
@@ -44,32 +50,32 @@ impl ImageWorker {
 
     thread::spawn(move || {
       // Check if cancelled early
-      if *generation_clone.lock().unwrap() != task_gen {
+      if !is_current(&generation_clone, task_gen) {
         return;
       }
 
       let _ = sender.send_blocking((task_gen, WorkerOutput::Progress(0.1)));
       match std::fs::read(&path) {
         Ok(data) => {
-          if *generation_clone.lock().unwrap() != task_gen {
+          if !is_current(&generation_clone, task_gen) {
             return;
           }
           let _ = sender.send_blocking((task_gen, WorkerOutput::Progress(0.3)));
           match pixie_core::decode_image(&data) {
             Ok((img, format)) => {
-              if *generation_clone.lock().unwrap() == task_gen {
+              if is_current(&generation_clone, task_gen) {
                 let _ = sender.send_blocking((task_gen, WorkerOutput::Decoded { img, format }));
               }
             }
             Err(err) => {
-              if *generation_clone.lock().unwrap() == task_gen {
+              if is_current(&generation_clone, task_gen) {
                 let _ = sender.send_blocking((task_gen, WorkerOutput::Error(err)));
               }
             }
           }
         }
         Err(err) => {
-          if *generation_clone.lock().unwrap() == task_gen {
+          if is_current(&generation_clone, task_gen) {
             let _ = sender.send_blocking((
               task_gen,
               WorkerOutput::Error(CoreError::Decode(format!("Failed to read file: {err}"))),
@@ -88,20 +94,22 @@ impl ImageWorker {
     let generation_clone = self.generation.clone();
 
     thread::spawn(move || {
-      if *generation_clone.lock().unwrap() != task_gen {
+      if !is_current(&generation_clone, task_gen) {
         return;
       }
 
       let _ = sender.send_blocking((task_gen, WorkerOutput::Progress(0.2)));
       match op.apply(img) {
         Ok(out_img) => {
-          if *generation_clone.lock().unwrap() == task_gen {
-            let _ =
-              sender.send_blocking((task_gen, WorkerOutput::OperationApplied { img: out_img }));
+          if is_current(&generation_clone, task_gen) {
+            let _ = sender.send_blocking((
+              task_gen,
+              WorkerOutput::OperationApplied { op, img: out_img },
+            ));
           }
         }
         Err(err) => {
-          if *generation_clone.lock().unwrap() == task_gen {
+          if is_current(&generation_clone, task_gen) {
             let _ = sender.send_blocking((task_gen, WorkerOutput::Error(err)));
           }
         }
@@ -125,7 +133,7 @@ impl ImageWorker {
     let generation_clone = self.generation.clone();
 
     thread::spawn(move || {
-      if *generation_clone.lock().unwrap() != task_gen {
+      if !is_current(&generation_clone, task_gen) {
         return;
       }
 
@@ -166,13 +174,13 @@ impl ImageWorker {
                 // Persist/rename
                 match temp_file.persist(&file_path) {
                   Ok(_) => {
-                    if *generation_clone.lock().unwrap() == task_gen {
+                    if is_current(&generation_clone, task_gen) {
                       let _ = sender
                         .send_blocking((task_gen, WorkerOutput::Exported { path: file_path }));
                     }
                   }
                   Err(e) => {
-                    if *generation_clone.lock().unwrap() == task_gen {
+                    if is_current(&generation_clone, task_gen) {
                       let _ = sender.send_blocking((
                         task_gen,
                         WorkerOutput::Error(CoreError::Encode(format!(
@@ -183,7 +191,7 @@ impl ImageWorker {
                   }
                 }
               } else {
-                if *generation_clone.lock().unwrap() == task_gen {
+                if is_current(&generation_clone, task_gen) {
                   let _ = sender.send_blocking((
                     task_gen,
                     WorkerOutput::Error(CoreError::Encode(
@@ -194,14 +202,14 @@ impl ImageWorker {
               }
             }
             Err(err) => {
-              if *generation_clone.lock().unwrap() == task_gen {
+              if is_current(&generation_clone, task_gen) {
                 let _ = sender.send_blocking((task_gen, WorkerOutput::Error(err)));
               }
             }
           }
         }
         Err(err) => {
-          if *generation_clone.lock().unwrap() == task_gen {
+          if is_current(&generation_clone, task_gen) {
             let _ = sender.send_blocking((
               task_gen,
               WorkerOutput::Error(CoreError::Encode(format!(
@@ -215,4 +223,8 @@ impl ImageWorker {
 
     task_gen
   }
+}
+
+fn is_current(generation: &AtomicU64, task_gen: u64) -> bool {
+  generation.load(Ordering::SeqCst) == task_gen
 }

@@ -1385,7 +1385,11 @@ impl PixieWindow {
     self.worker.spawn_decode(path);
   }
 
-  fn handle_worker_output(&self, _gen: u64, output: WorkerOutput) {
+  fn handle_worker_output(&self, task_gen: u64, output: WorkerOutput) {
+    if !self.worker.is_current(task_gen) {
+      return;
+    }
+
     match output {
       WorkerOutput::Progress(fraction) => {
         self.progress_bar.set_fraction(f64::from(fraction));
@@ -1477,16 +1481,19 @@ impl PixieWindow {
           self.enable_sidebar_toggles(true);
         }
       }
-      WorkerOutput::OperationApplied { img } => {
+      WorkerOutput::OperationApplied { op, img } => {
         self.progress_bar.set_visible(false);
-        self.canvas.set_image(img.clone());
 
-        let doc_borrow = self.document.borrow();
-        if let Some(ref doc) = *doc_borrow {
+        let mut doc_borrow = self.document.borrow_mut();
+        if let Some(ref mut doc) = *doc_borrow {
+          doc.commit_rendered_operation(op, img.clone());
           self.undo_btn.set_sensitive(doc.history().can_undo());
           self.redo_btn.set_sensitive(doc.history().can_redo());
         }
+        drop(doc_borrow);
 
+        self.canvas.set_image(img);
+        self.enable_sidebar_toggles(true);
         self.update_properties_popover(false);
         self.refresh_window_title();
         self.show_toast("Operation applied successfully");
@@ -1506,6 +1513,9 @@ impl PixieWindow {
       }
       WorkerOutput::Error(e) => {
         self.progress_bar.set_visible(false);
+        if self.document.borrow().is_some() {
+          self.enable_sidebar_toggles(true);
+        }
         self.show_error_dialog(&format!("Operation failed: {e}"));
         if self.document.borrow().is_none() {
           self.stack.set_visible_child_name("placeholder");
@@ -1532,15 +1542,16 @@ impl PixieWindow {
   fn apply_image_operation(&self, op: ImageOperation) {
     let mut doc_borrow = self.document.borrow_mut();
     if let Some(ref mut doc) = *doc_borrow {
-      let current = doc.current_image().unwrap();
-      match doc.apply_operation(op.clone()) {
-        Ok(_) => {
+      match doc.current_image() {
+        Ok(current) => {
+          drop(doc_borrow);
+          self.enable_sidebar_toggles(false);
           self.progress_bar.set_visible(true);
           self.progress_bar.set_fraction(0.0);
           self.worker.spawn_apply_operation(current, op);
         }
         Err(e) => {
-          self.show_error_dialog(&format!("Failed to apply operation: {e}"));
+          self.show_error_dialog(&format!("Failed to prepare operation: {e}"));
         }
       }
     }
@@ -1705,39 +1716,56 @@ impl PixieWindow {
   }
 
   fn perform_export(&self, path: PathBuf, options: ExportOptions) {
-    let doc_borrow = self.document.borrow();
-    if let Some(ref doc) = *doc_borrow {
-      let current = doc.current_image().unwrap();
-      self.progress_bar.set_visible(true);
-      self.progress_bar.set_fraction(0.0);
-      let original_path = self.current_file_path.borrow().clone();
-      let policy = doc.metadata_policy;
-      let metadata_edits = doc.metadata_edits.clone();
-      self.worker.spawn_export(
-        current,
-        path,
-        original_path,
-        policy,
-        metadata_edits,
-        options,
-      );
+    let mut doc_borrow = self.document.borrow_mut();
+    if let Some(ref mut doc) = *doc_borrow {
+      match doc.current_image() {
+        Ok(current) => {
+          let policy = doc.metadata_policy;
+          let metadata_edits = doc.metadata_edits.clone();
+          drop(doc_borrow);
+
+          self.progress_bar.set_visible(true);
+          self.progress_bar.set_fraction(0.0);
+          let original_path = self.current_file_path.borrow().clone();
+          self.worker.spawn_export(
+            current,
+            path,
+            original_path,
+            policy,
+            metadata_edits,
+            options,
+          );
+        }
+        Err(e) => {
+          self.show_error_dialog(&format!("Failed to prepare export: {e}"));
+        }
+      }
     }
   }
 
   fn trigger_undo(self: &Rc<Self>) {
     let mut did_undo = false;
+    let mut undo_error = None;
     let mut doc_borrow = self.document.borrow_mut();
     if let Some(ref mut doc) = *doc_borrow {
       if doc.undo() {
-        let current = doc.current_image().unwrap();
-        self.canvas.set_image(current);
-        self.undo_btn.set_sensitive(doc.history().can_undo());
-        self.redo_btn.set_sensitive(doc.history().can_redo());
-        did_undo = true;
+        match doc.current_image() {
+          Ok(current) => {
+            self.canvas.set_image(current);
+            self.undo_btn.set_sensitive(doc.history().can_undo());
+            self.redo_btn.set_sensitive(doc.history().can_redo());
+            did_undo = true;
+          }
+          Err(e) => undo_error = Some(e),
+        }
       }
     }
 
     drop(doc_borrow);
+    if let Some(e) = undo_error {
+      self.show_error_dialog(&format!("Failed to undo operation: {e}"));
+      return;
+    }
     if did_undo {
       self.update_properties_popover(false);
       self.refresh_window_title();
@@ -1747,18 +1775,27 @@ impl PixieWindow {
 
   fn trigger_redo(self: &Rc<Self>) {
     let mut did_redo = false;
+    let mut redo_error = None;
     let mut doc_borrow = self.document.borrow_mut();
     if let Some(ref mut doc) = *doc_borrow {
       if doc.redo() {
-        let current = doc.current_image().unwrap();
-        self.canvas.set_image(current);
-        self.undo_btn.set_sensitive(doc.history().can_undo());
-        self.redo_btn.set_sensitive(doc.history().can_redo());
-        did_redo = true;
+        match doc.current_image() {
+          Ok(current) => {
+            self.canvas.set_image(current);
+            self.undo_btn.set_sensitive(doc.history().can_undo());
+            self.redo_btn.set_sensitive(doc.history().can_redo());
+            did_redo = true;
+          }
+          Err(e) => redo_error = Some(e),
+        }
       }
     }
 
     drop(doc_borrow);
+    if let Some(e) = redo_error {
+      self.show_error_dialog(&format!("Failed to redo operation: {e}"));
+      return;
+    }
     if did_redo {
       self.update_properties_popover(false);
       self.refresh_window_title();

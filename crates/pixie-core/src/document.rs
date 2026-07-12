@@ -12,8 +12,15 @@ pub struct PixieDocument {
   original_image: DynamicImage,
   original_format: ImageFormat,
   history: EditingHistory,
+  rendered_cache: RenderedImageCache,
   pub metadata_policy: crate::metadata::MetadataPolicy,
   pub metadata_edits: crate::metadata::MetadataEdits,
+}
+
+#[derive(Debug, Clone)]
+struct RenderedImageCache {
+  history_revision: u64,
+  image: DynamicImage,
 }
 
 impl std::fmt::Debug for PixieDocument {
@@ -34,10 +41,15 @@ impl PixieDocument {
   }
 
   pub fn new(original_image: DynamicImage, original_format: ImageFormat) -> Self {
+    let rendered_image = original_image.clone();
     Self {
       original_image,
       original_format,
       history: EditingHistory::new(),
+      rendered_cache: RenderedImageCache {
+        history_revision: 0,
+        image: rendered_image,
+      },
       metadata_policy: crate::metadata::MetadataPolicy::default(),
       metadata_edits: crate::metadata::MetadataEdits::default(),
     }
@@ -62,32 +74,68 @@ impl PixieDocument {
   pub fn apply_operation(&mut self, op: ImageOperation) -> Result<DynamicImage> {
     let current = self.current_image()?;
     let next = op.apply(current)?;
-    self.history.push(op);
+    self.commit_rendered_operation(op, next.clone());
     Ok(next)
   }
 
-  pub fn current_image(&self) -> Result<DynamicImage> {
+  pub fn commit_rendered_operation(&mut self, op: ImageOperation, rendered: DynamicImage) {
+    self.history.push(op);
+    self.update_rendered_cache(rendered);
+  }
+
+  pub fn current_image(&mut self) -> Result<DynamicImage> {
+    let revision = self.history.revision();
+    if self.rendered_cache.history_revision == revision {
+      return Ok(self.rendered_cache.image.clone());
+    }
+
     let mut pipeline = OperationPipeline::new();
     for op in self.history.operations() {
       pipeline.add(op.clone());
     }
-    pipeline.apply(self.original_image.clone())
+    let rendered = pipeline.apply(self.original_image.clone())?;
+    self.update_rendered_cache(rendered.clone());
+    Ok(rendered)
   }
 
   pub fn undo(&mut self) -> bool {
-    self.history.undo()
+    let changed = self.history.undo();
+    if changed {
+      self.invalidate_rendered_cache();
+    }
+    changed
   }
 
   pub fn redo(&mut self) -> bool {
-    self.history.redo()
+    let changed = self.history.redo();
+    if changed {
+      self.invalidate_rendered_cache();
+    }
+    changed
   }
 
   pub fn reset(&mut self) {
     self.history.reset();
+    self.update_rendered_cache(self.original_image.clone());
   }
 
-  pub fn export<W: Write + std::io::Seek>(&self, writer: W, options: &ExportOptions) -> Result<()> {
+  pub fn export<W: Write + std::io::Seek>(
+    &mut self,
+    writer: W,
+    options: &ExportOptions,
+  ) -> Result<()> {
     let current = self.current_image()?;
     encode_image(&current, writer, options)
+  }
+
+  fn update_rendered_cache(&mut self, image: DynamicImage) {
+    self.rendered_cache = RenderedImageCache {
+      history_revision: self.history.revision(),
+      image,
+    };
+  }
+
+  fn invalidate_rendered_cache(&mut self) {
+    self.rendered_cache.history_revision = self.history.revision().wrapping_sub(1);
   }
 }
