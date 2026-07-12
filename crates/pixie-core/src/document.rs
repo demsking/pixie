@@ -30,13 +30,17 @@ impl std::fmt::Debug for PixieDocument {
 impl PixieDocument {
   pub fn open(data: &[u8]) -> Result<Self> {
     let (original_image, original_format) = decode_image(data)?;
-    Ok(Self {
+    Ok(Self::new(original_image, original_format))
+  }
+
+  pub fn new(original_image: DynamicImage, original_format: ImageFormat) -> Self {
+    Self {
       original_image,
       original_format,
       history: EditingHistory::new(),
       metadata_policy: crate::metadata::MetadataPolicy::default(),
       metadata_edits: crate::metadata::MetadataEdits::default(),
-    })
+    }
   }
 
   pub const fn original_image(&self) -> &DynamicImage {

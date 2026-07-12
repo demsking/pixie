@@ -37,7 +37,7 @@ impl ImageWorker {
     *generation
   }
 
-  pub fn spawn_decode(&self, data: Vec<u8>) -> u64 {
+  pub fn spawn_decode(&self, path: std::path::PathBuf) -> u64 {
     let task_gen = self.cancel_current_tasks();
     let sender = self.sender.clone();
     let generation_clone = self.generation.clone();
@@ -49,15 +49,31 @@ impl ImageWorker {
       }
 
       let _ = sender.send_blocking((task_gen, WorkerOutput::Progress(0.1)));
-      match pixie_core::decode_image(&data) {
-        Ok((img, format)) => {
-          if *generation_clone.lock().unwrap() == task_gen {
-            let _ = sender.send_blocking((task_gen, WorkerOutput::Decoded { img, format }));
+      match std::fs::read(&path) {
+        Ok(data) => {
+          if *generation_clone.lock().unwrap() != task_gen {
+            return;
+          }
+          let _ = sender.send_blocking((task_gen, WorkerOutput::Progress(0.3)));
+          match pixie_core::decode_image(&data) {
+            Ok((img, format)) => {
+              if *generation_clone.lock().unwrap() == task_gen {
+                let _ = sender.send_blocking((task_gen, WorkerOutput::Decoded { img, format }));
+              }
+            }
+            Err(err) => {
+              if *generation_clone.lock().unwrap() == task_gen {
+                let _ = sender.send_blocking((task_gen, WorkerOutput::Error(err)));
+              }
+            }
           }
         }
         Err(err) => {
           if *generation_clone.lock().unwrap() == task_gen {
-            let _ = sender.send_blocking((task_gen, WorkerOutput::Error(err)));
+            let _ = sender.send_blocking((
+              task_gen,
+              WorkerOutput::Error(CoreError::Decode(format!("Failed to read file: {err}"))),
+            ));
           }
         }
       }

@@ -694,7 +694,7 @@ impl PixieWindow {
     // ── Image Information Popover Map Connection ────────────────────────
     let win_properties_map = win_struct.clone();
     properties_popover.connect_map(move |_| {
-      win_properties_map.update_properties_popover();
+      win_properties_map.update_properties_popover(true);
     });
 
     let win_folder_click = win_struct.clone();
@@ -1378,22 +1378,11 @@ impl PixieWindow {
       *self.folder_index.borrow_mut() = idx;
     }
 
-    // Read file bytes in background
-    match std::fs::read(&path) {
-      Ok(bytes) => {
-        *self.current_file_path.borrow_mut() = Some(path);
-        self.progress_bar.set_visible(true);
-        self.progress_bar.set_fraction(0.0);
-        self.stack.set_visible_child_name("canvas");
-        self.worker.spawn_decode(bytes);
-      }
-      Err(e) => {
-        self.show_error_dialog(&format!("Could not read file: {e}"));
-        if self.document.borrow().is_none() {
-          self.stack.set_visible_child_name("placeholder");
-        }
-      }
-    }
+    *self.current_file_path.borrow_mut() = Some(path.clone());
+    self.progress_bar.set_visible(true);
+    self.progress_bar.set_fraction(0.0);
+    self.stack.set_visible_child_name("canvas");
+    self.worker.spawn_decode(path);
   }
 
   fn handle_worker_output(&self, _gen: u64, output: WorkerOutput) {
@@ -1404,9 +1393,8 @@ impl PixieWindow {
       WorkerOutput::Decoded { img, format } => {
         self.progress_bar.set_visible(false);
         self.stack.set_visible_child_name("canvas");
-        let path = self.current_file_path.borrow();
 
-        let doc = PixieDocument::open(&std::fs::read(path.as_ref().unwrap()).unwrap()).unwrap(); // safe re-decoding context
+        let doc = PixieDocument::new(img.clone(), format);
         self.undo_btn.set_sensitive(doc.history().can_undo());
         self.redo_btn.set_sensitive(doc.history().can_redo());
         self.saved_metadata_policy.set(doc.metadata_policy);
@@ -1432,7 +1420,7 @@ impl PixieWindow {
         ));
 
         self.properties_btn.set_visible(true);
-        self.update_properties_popover();
+        self.update_properties_popover(false);
 
         // Title
         self.refresh_window_title();
@@ -1499,7 +1487,7 @@ impl PixieWindow {
           self.redo_btn.set_sensitive(doc.history().can_redo());
         }
 
-        self.update_properties_popover();
+        self.update_properties_popover(false);
         self.refresh_window_title();
         self.show_toast("Operation applied successfully");
       }
@@ -1512,7 +1500,7 @@ impl PixieWindow {
             self.saved_metadata_policy.set(doc.metadata_policy);
             *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
           }
-          self.update_properties_popover();
+          self.update_properties_popover(false);
           self.refresh_window_title();
         }
       }
@@ -1751,7 +1739,7 @@ impl PixieWindow {
 
     drop(doc_borrow);
     if did_undo {
-      self.update_properties_popover();
+      self.update_properties_popover(false);
       self.refresh_window_title();
       self.show_toast("Undo applied");
     }
@@ -1772,7 +1760,7 @@ impl PixieWindow {
 
     drop(doc_borrow);
     if did_redo {
-      self.update_properties_popover();
+      self.update_properties_popover(false);
       self.refresh_window_title();
       self.show_toast("Redo applied");
     }
@@ -2244,7 +2232,14 @@ impl PixieWindow {
     }
   }
 
-  fn update_properties_popover(&self) {
+  fn update_properties_popover(&self, force: bool) {
+    if !force {
+      if let Some(popover) = self.properties_btn.popover() {
+        if !popover.is_mapped() {
+          return;
+        }
+      }
+    }
     let path_borrow = self.current_file_path.borrow();
     if let Some(ref path) = *path_borrow {
       let folder_name = path
