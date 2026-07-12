@@ -1,6 +1,6 @@
 [book]
 title = "Pixie — Modern Image Processor"
-author = "Sébastien Demanou"
+authors = ["Sébastien Demanou"]
 description = "Documentation for Pixie - Modern Image Processor"
 src = "."
 

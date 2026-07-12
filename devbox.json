@@ -18,7 +18,8 @@
     "dav1d.dev",
     "glib.dev",
     "libadwaita@latest",
-    "libadwaita.dev"
+    "libadwaita.dev",
+    "mdbook@latest"
   ],
   "shell": {
     "init_hook": [
@@ -26,16 +27,16 @@
       "make bootstrap"
     ],
     "scripts": {
-      "bootstrap": "make bootstrap",
-      "build": "make build",
-      "check": "make check",
-      "test": "make test-all",
-      "lint": "make lint",
-      "run": "make run",
-      "docs": "make docs-build",
+      "bootstrap":  "make bootstrap",
+      "build":      "make build",
+      "check":      "make check",
+      "test":       "make test-all",
+      "lint":       "make lint",
+      "run":        "make run",
+      "docs":       "make docs-build",
       "docs-serve": "make docs-serve",
-      "flatpak": "make flatpak-build",
-      "ci": "make ci"
+      "flatpak":    "make flatpak-build",
+      "ci":         "make ci"
     }
   }
 }
