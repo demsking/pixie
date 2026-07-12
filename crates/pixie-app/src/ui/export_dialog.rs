@@ -1,3 +1,4 @@
+use crate::i18n::{gettext, gettext_replace};
 use gtk4::prelude::*;
 use pixie_core::{ExportOptions, ImageFormat};
 use std::cell::RefCell;
@@ -10,15 +11,17 @@ pub struct ExportDialog {
 
 impl ExportDialog {
   const FORMAT_IDS: [&'static str; 7] = ["png", "jpeg", "webp", "avif", "bmp", "tiff", "gif"];
-  const FORMAT_LABELS: [&'static str; 7] = [
-    "PNG Image",
-    "JPEG Image",
-    "WebP Image",
-    "AVIF Image",
-    "BMP Image",
-    "TIFF Image",
-    "GIF (Static)",
-  ];
+  fn format_labels() -> [String; 7] {
+    [
+      gettext("PNG Image"),
+      gettext("JPEG Image"),
+      gettext("WebP Image"),
+      gettext("AVIF Image"),
+      gettext("BMP Image"),
+      gettext("TIFF Image"),
+      gettext("GIF (Static)"),
+    ]
+  }
 
   fn extension_for_format(format_id: &str) -> &'static str {
     match format_id {
@@ -61,6 +64,37 @@ impl ExportDialog {
       .unwrap_or("png")
   }
 
+  fn localize_conversion_warning(warning: &str) -> String {
+    if let Some(format) = warning
+      .strip_prefix("Destination format ")
+      .and_then(|rest| {
+        rest.strip_suffix(" does not support transparency. Alpha channel will be flattened.")
+      })
+    {
+      gettext_replace(
+        "Destination format {format} does not support transparency. Alpha channel will be flattened.",
+        &[("format", format.to_string())],
+      )
+    } else {
+      match warning {
+        "JPEG is a lossy format. Saving may introduce quality degradation." => {
+          gettext("JPEG is a lossy format. Saving may introduce quality degradation.")
+        }
+        "BMP does not support compressed saving, resulting in large files. Metadata may be lost." => {
+          gettext(
+            "BMP does not support compressed saving, resulting in large files. Metadata may be lost.",
+          )
+        }
+        "Original image might be an animation. Converting will lose all frames except the first static frame." => {
+          gettext(
+            "Original image might be an animation. Converting will lose all frames except the first static frame.",
+          )
+        }
+        _ => warning.to_string(),
+      }
+    }
+  }
+
   pub fn new<F>(
     parent: &gtk4::Window,
     has_transparency: bool,
@@ -72,7 +106,7 @@ impl ExportDialog {
     F: Fn(PathBuf, ExportOptions) + 'static,
   {
     let window = gtk4::Window::builder()
-      .title("Convert Image")
+      .title(gettext("Convert Image"))
       .transient_for(parent)
       .modal(true)
       .destroy_with_parent(true)
@@ -92,12 +126,14 @@ impl ExportDialog {
 
     // Format Selector
     let format_label = gtk4::Label::builder()
-      .label("Target Format")
+      .label(gettext("Target Format"))
       .halign(gtk4::Align::Start)
       .build();
     root_box.append(&format_label);
 
-    let format_combo = gtk4::DropDown::from_strings(&Self::FORMAT_LABELS);
+    let format_labels = Self::format_labels();
+    let format_label_refs: Vec<&str> = format_labels.iter().map(String::as_str).collect();
+    let format_combo = gtk4::DropDown::from_strings(&format_label_refs);
     format_combo.set_hexpand(true);
 
     // Set default format to match original
@@ -115,7 +151,7 @@ impl ExportDialog {
 
     // Destination Selector
     let destination_label = gtk4::Label::builder()
-      .label("Save Destination")
+      .label(gettext("Save Destination"))
       .halign(gtk4::Align::Start)
       .build();
     root_box.append(&destination_label);
@@ -128,11 +164,11 @@ impl ExportDialog {
     let destination_entry = gtk4::Entry::builder()
       .editable(false)
       .hexpand(true)
-      .placeholder_text("Select destination file")
+      .placeholder_text(gettext("Select destination file"))
       .build();
     destination_row.append(&destination_entry);
 
-    let destination_browse_btn = gtk4::Button::with_label("Browse…");
+    let destination_browse_btn = gtk4::Button::with_label(&gettext("Browse..."));
     destination_row.append(&destination_browse_btn);
 
     root_box.append(&destination_row);
@@ -172,9 +208,9 @@ impl ExportDialog {
       .halign(gtk4::Align::End)
       .margin_top(12)
       .build();
-    let cancel_btn = gtk4::Button::with_label("Cancel");
+    let cancel_btn = gtk4::Button::with_label(&gettext("Cancel"));
     let export_btn = gtk4::Button::builder()
-      .label("Convert")
+      .label(gettext("Convert"))
       .css_classes(["suggested-action"])
       .build();
     btn_box.append(&cancel_btn);
@@ -211,7 +247,7 @@ impl ExportDialog {
       .build();
     bmp_bg_box.append(
       &gtk4::Label::builder()
-        .label("Background color")
+        .label(gettext("Background color"))
         .hexpand(true)
         .halign(gtk4::Align::Start)
         .build(),
@@ -272,6 +308,10 @@ impl ExportDialog {
           warning_label.set_text("");
           warning_label.set_visible(false);
         } else {
+          let warnings = warnings
+            .iter()
+            .map(|warning| Self::localize_conversion_warning(warning))
+            .collect::<Vec<_>>();
           warning_label.set_text(&warnings.join("\n"));
           warning_label.set_visible(true);
         }
@@ -279,7 +319,7 @@ impl ExportDialog {
         match combo_id {
           "jpeg" => {
             let l1 = gtk4::Label::builder()
-              .label("Quality (10 - 100)")
+              .label(gettext("Quality (10 - 100)"))
               .halign(gtk4::Align::Start)
               .build();
             settings_box.append(&l1);
@@ -291,7 +331,7 @@ impl ExportDialog {
               .build();
             b1.append(
               &gtk4::Label::builder()
-                .label("Progressive Encoding")
+                .label(gettext("Progressive Encoding"))
                 .hexpand(true)
                 .halign(gtk4::Align::Start)
                 .build(),
@@ -305,7 +345,7 @@ impl ExportDialog {
               .build();
             b2.append(
               &gtk4::Label::builder()
-                .label("Background for transparent areas")
+                .label(gettext("Background for transparent areas"))
                 .hexpand(true)
                 .halign(gtk4::Align::Start)
                 .build(),
@@ -315,7 +355,7 @@ impl ExportDialog {
           }
           "png" => {
             let l1 = gtk4::Label::builder()
-              .label("Compression Level (0 - 9)")
+              .label(gettext("Compression Level (0 - 9)"))
               .halign(gtk4::Align::Start)
               .build();
             settings_box.append(&l1);
@@ -327,7 +367,7 @@ impl ExportDialog {
               .build();
             b1.append(
               &gtk4::Label::builder()
-                .label("Preserve Transparency")
+                .label(gettext("Preserve Transparency"))
                 .hexpand(true)
                 .halign(gtk4::Align::Start)
                 .build(),
@@ -342,7 +382,7 @@ impl ExportDialog {
               .build();
             b1.append(
               &gtk4::Label::builder()
-                .label("Lossless Mode")
+                .label(gettext("Lossless Mode"))
                 .hexpand(true)
                 .halign(gtk4::Align::Start)
                 .build(),
@@ -351,7 +391,7 @@ impl ExportDialog {
             settings_box.append(&b1);
 
             let l1 = gtk4::Label::builder()
-              .label("Quality")
+              .label(gettext("Quality"))
               .halign(gtk4::Align::Start)
               .build();
             settings_box.append(&l1);
@@ -359,14 +399,14 @@ impl ExportDialog {
           }
           "avif" => {
             let l1 = gtk4::Label::builder()
-              .label("Quality")
+              .label(gettext("Quality"))
               .halign(gtk4::Align::Start)
               .build();
             settings_box.append(&l1);
             settings_box.append(&avif_quality_scale);
 
             let l2 = gtk4::Label::builder()
-              .label("Speed/Effort (1 - 10)")
+              .label(gettext("Speed/Effort (1 - 10)"))
               .halign(gtk4::Align::Start)
               .build();
             settings_box.append(&l2);
@@ -409,7 +449,7 @@ impl ExportDialog {
       let format_id = Self::format_id_for_index(format_combo_for_browse.selected());
 
       let dialog = gtk4::FileDialog::new();
-      dialog.set_title("Select Save Destination");
+      dialog.set_title(&gettext("Select Save Destination"));
 
       if let Some(path) = selected_destination_for_browse.borrow().clone() {
         if let Some(name) = path.file_name() {
@@ -422,7 +462,7 @@ impl ExportDialog {
 
       let filter_list = gio::ListStore::new::<gtk4::FileFilter>();
       let filter = gtk4::FileFilter::new();
-      filter.set_name(Some("Selected Format"));
+      filter.set_name(Some(&gettext("Selected Format")));
 
       match format_id {
         "jpeg" => filter.add_mime_type("image/jpeg"),
@@ -517,7 +557,7 @@ impl ExportDialog {
         on_export_rc(path, options.clone());
         win_clone2.destroy();
       } else {
-        destination_error_for_export.set_text("Please select a save destination.");
+        destination_error_for_export.set_text(&gettext("Please select a save destination."));
         destination_error_for_export.set_visible(true);
       }
     });

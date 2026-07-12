@@ -15,6 +15,7 @@ use super::crop_tool::CropToolView;
 use super::export_dialog::ExportDialog;
 use super::resize_tool::ResizeToolView;
 use super::sidebar::PixieSidebar;
+use crate::i18n::{gettext, gettext_replace};
 use crate::workers::{ImageWorker, WorkerOutput};
 
 pub struct PixieWindow {
@@ -91,7 +92,7 @@ impl PixieWindow {
       let file_name = path
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "Unknown".to_string());
+        .unwrap_or_else(|| gettext("Unknown"));
       let dirty_prefix = if has_changes { "* " } else { "" };
       format!("{dirty_prefix}{file_name} — Pixie")
     } else {
@@ -127,17 +128,17 @@ impl PixieWindow {
     // Left: Toggle fullscreen button
     let fullscreen_btn = gtk4::Button::builder()
       .icon_name("view-fullscreen-symbolic")
-      .tooltip_text("Toggle Fullscreen")
+      .tooltip_text(gettext("Toggle Fullscreen"))
       .build();
     header_bar.pack_start(&fullscreen_btn);
 
     let update_fullscreen_btn = |btn: &gtk4::Button, is_fullscreen: bool| {
       if is_fullscreen {
         btn.set_icon_name("view-restore-symbolic");
-        btn.set_tooltip_text(Some("Exit Fullscreen"));
+        btn.set_tooltip_text(Some(&gettext("Exit Fullscreen")));
       } else {
         btn.set_icon_name("view-fullscreen-symbolic");
-        btn.set_tooltip_text(Some("Enter Fullscreen"));
+        btn.set_tooltip_text(Some(&gettext("Enter Fullscreen")));
       }
     };
     update_fullscreen_btn(&fullscreen_btn, window.is_fullscreen());
@@ -145,12 +146,12 @@ impl PixieWindow {
     // Left: Undo / Redo
     let undo_btn = gtk4::Button::builder()
       .icon_name("edit-undo-symbolic")
-      .tooltip_text("Undo (Ctrl+Z)")
+      .tooltip_text(gettext("Undo (Ctrl+Z)"))
       .sensitive(false)
       .build();
     let redo_btn = gtk4::Button::builder()
       .icon_name("edit-redo-symbolic")
-      .tooltip_text("Redo (Ctrl+Shift+Z)")
+      .tooltip_text(gettext("Redo (Ctrl+Shift+Z)"))
       .sensitive(false)
       .build();
     header_bar.pack_start(&undo_btn);
@@ -159,61 +160,61 @@ impl PixieWindow {
     // File actions remain available through the app menu.
     let save_btn = gtk4::Button::builder()
       .icon_name("document-save-symbolic")
-      .tooltip_text("Save (Ctrl+S)")
+      .tooltip_text(gettext("Save (Ctrl+S)"))
       .sensitive(false)
       .build();
     let export_btn = gtk4::Button::builder()
       .icon_name("document-send-symbolic")
-      .tooltip_text("Convert… (Ctrl+Alt+S)")
+      .tooltip_text(gettext("Convert... (Ctrl+Alt+S)"))
       .sensitive(false)
       .build();
 
     // Floating tool buttons
     let crop_btn = gtk4::ToggleButton::builder()
       .icon_name("edit-cut-symbolic")
-      .tooltip_text("Crop Image")
+      .tooltip_text(gettext("Crop Image"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
 
     let resize_btn = gtk4::ToggleButton::builder()
       .icon_name("zoom-fit-best-symbolic")
-      .tooltip_text("Resize Image")
+      .tooltip_text(gettext("Resize Image"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
 
     let metadata_btn = gtk4::MenuButton::builder()
       .icon_name("security-high-symbolic")
-      .tooltip_text("Metadata Cleaner")
+      .tooltip_text(gettext("Metadata Cleaner"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
 
     let metadata_edit_btn = gtk4::Button::builder()
       .icon_name("document-edit-symbolic")
-      .tooltip_text("Edit Metadata")
+      .tooltip_text(gettext("Edit Metadata"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
 
     let rotate_btn = gtk4::Button::builder()
       .icon_name("object-rotate-right-symbolic")
-      .tooltip_text("Rotate image to the right")
+      .tooltip_text(gettext("Rotate image to the right"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
 
     let mirror_btn = gtk4::Button::builder()
       .icon_name("object-flip-horizontal-symbolic")
-      .tooltip_text("Mirror")
+      .tooltip_text(gettext("Mirror"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
 
     let flip_btn = gtk4::Button::builder()
       .icon_name("object-flip-vertical-symbolic")
-      .tooltip_text("Flip")
+      .tooltip_text(gettext("Flip"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
@@ -223,35 +224,41 @@ impl PixieWindow {
 
     // Section 1: file ops
     let file_section = gio::Menu::new();
-    file_section.append(Some("New Window"), Some("app.new-window"));
-    file_section.append(Some("Open…"), Some("win.open"));
+    file_section.append(Some(&gettext("New Window")), Some("app.new-window"));
+    file_section.append(Some(&gettext("Open...")), Some("win.open"));
     app_menu.append_section(None, &file_section);
 
     // Section 2: image ops
     let image_section = gio::Menu::new();
-    image_section.append(Some("Open With…"), Some("win.open-with"));
-    image_section.append(Some("Print…"), Some("win.print"));
+    image_section.append(Some(&gettext("Open With...")), Some("win.open-with"));
+    image_section.append(Some(&gettext("Print...")), Some("win.print"));
     app_menu.append_section(None, &image_section);
 
     // Section 3: save/export ops
     let save_section = gio::Menu::new();
-    save_section.append(Some("Convert…"), Some("win.export"));
+    save_section.append(Some(&gettext("Convert...")), Some("win.export"));
     app_menu.append_section(None, &save_section);
 
     // Section 4: view/fullscreen ops
     let view_section = gio::Menu::new();
-    view_section.append(Some("Toggle Fullscreen"), Some("win.toggle-fullscreen"));
+    view_section.append(
+      Some(&gettext("Toggle Fullscreen")),
+      Some("win.toggle-fullscreen"),
+    );
     app_menu.append_section(None, &view_section);
 
     // Section 5: help
     let help_section = gio::Menu::new();
-    help_section.append(Some("Keyboard Shortcuts"), Some("win.show-help-overlay"));
-    help_section.append(Some("About Pixie"), Some("win.about"));
+    help_section.append(
+      Some(&gettext("Keyboard Shortcuts")),
+      Some("win.show-help-overlay"),
+    );
+    help_section.append(Some(&gettext("About Pixie")), Some("win.about"));
     app_menu.append_section(None, &help_section);
 
     let menu_btn = gtk4::MenuButton::builder()
       .icon_name("open-menu-symbolic")
-      .tooltip_text("Main Menu")
+      .tooltip_text(gettext("Main Menu"))
       .menu_model(&app_menu)
       .build();
     header_bar.pack_end(&menu_btn);
@@ -363,7 +370,7 @@ impl PixieWindow {
       .hexpand(true)
       .build();
     let folder_title_lbl = gtk4::Label::builder()
-      .label("Folder")
+      .label(gettext("Folder"))
       .halign(gtk4::Align::Start)
       .css_classes(["info-title"])
       .build();
@@ -375,7 +382,7 @@ impl PixieWindow {
       .halign(gtk4::Align::End)
       .valign(gtk4::Align::Center)
       .css_classes(["flat"])
-      .tooltip_text("Open Containing Folder")
+      .tooltip_text(gettext("Open Containing Folder"))
       .build();
     folder_hbox.append(&folder_vbox);
     folder_hbox.append(&properties_folder_btn);
@@ -384,7 +391,7 @@ impl PixieWindow {
     properties_popover_box.append(&listbox1);
 
     // Helper to create listbox row with title and value
-    let create_row = |title: &str, value_lbl: &gtk4::Label| -> gtk4::ListBoxRow {
+    let create_row = |title: String, value_lbl: &gtk4::Label| -> gtk4::ListBoxRow {
       let row = gtk4::ListBoxRow::builder()
         .activatable(false)
         .selectable(false)
@@ -413,10 +420,19 @@ impl PixieWindow {
       .selection_mode(gtk4::SelectionMode::None)
       .css_classes(["boxed-list"])
       .build();
-    listbox2.append(&create_row("Image Size", &properties_size_label));
-    listbox2.append(&create_row("Image Format", &properties_format_label));
-    listbox2.append(&create_row("Aspect Ratio", &properties_aspect_ratio_label));
-    listbox2.append(&create_row("File Size", &properties_file_size_label));
+    listbox2.append(&create_row(gettext("Image Size"), &properties_size_label));
+    listbox2.append(&create_row(
+      gettext("Image Format"),
+      &properties_format_label,
+    ));
+    listbox2.append(&create_row(
+      gettext("Aspect Ratio"),
+      &properties_aspect_ratio_label,
+    ));
+    listbox2.append(&create_row(
+      gettext("File Size"),
+      &properties_file_size_label,
+    ));
     properties_popover_box.append(&listbox2);
 
     // Group 3: Created, Modified times
@@ -424,8 +440,14 @@ impl PixieWindow {
       .selection_mode(gtk4::SelectionMode::None)
       .css_classes(["boxed-list"])
       .build();
-    listbox3.append(&create_row("File Created", &properties_created_label));
-    listbox3.append(&create_row("File Modified", &properties_modified_label));
+    listbox3.append(&create_row(
+      gettext("File Created"),
+      &properties_created_label,
+    ));
+    listbox3.append(&create_row(
+      gettext("File Modified"),
+      &properties_modified_label,
+    ));
     properties_popover_box.append(&listbox3);
 
     // Group 4: Metadata
@@ -433,19 +455,19 @@ impl PixieWindow {
       .selection_mode(gtk4::SelectionMode::None)
       .css_classes(["boxed-list"])
       .build();
-    let properties_comments_row = create_row("Comments", &properties_comments_label);
+    let properties_comments_row = create_row(gettext("Comments"), &properties_comments_label);
     properties_comments_row.set_visible(false);
     listbox4.append(&properties_comments_row);
 
-    let properties_artist_row = create_row("Artist", &properties_artist_label);
+    let properties_artist_row = create_row(gettext("Artist"), &properties_artist_label);
     properties_artist_row.set_visible(false);
     listbox4.append(&properties_artist_row);
 
-    let properties_copyright_row = create_row("Copyright", &properties_copyright_label);
+    let properties_copyright_row = create_row(gettext("Copyright"), &properties_copyright_label);
     properties_copyright_row.set_visible(false);
     listbox4.append(&properties_copyright_row);
 
-    let properties_software_row = create_row("Software", &properties_software_label);
+    let properties_software_row = create_row(gettext("Software"), &properties_software_label);
     properties_software_row.set_visible(false);
     listbox4.append(&properties_software_row);
     properties_popover_box.append(&listbox4);
@@ -454,20 +476,20 @@ impl PixieWindow {
 
     let properties_btn = gtk4::MenuButton::builder()
       .icon_name("info-outline-symbolic")
-      .tooltip_text("Image Properties")
+      .tooltip_text(gettext("Image Properties"))
       .visible(false)
       .popover(&properties_popover)
       .build();
     header_bar.pack_end(&properties_btn);
 
     let save_dropdown_menu = gio::Menu::new();
-    save_dropdown_menu.append(Some("Save As…"), Some("win.save-as"));
-    save_dropdown_menu.append(Some("Replace Original Image"), Some("win.save"));
+    save_dropdown_menu.append(Some(&gettext("Save As...")), Some("win.save-as"));
+    save_dropdown_menu.append(Some(&gettext("Replace Original Image")), Some("win.save"));
 
     let save_dropdown_btn = gtk4::MenuButton::builder()
       .icon_name("document-save-symbolic")
-      .label("Save")
-      .tooltip_text("Save Changes")
+      .label(gettext("Save"))
+      .tooltip_text(gettext("Save Changes"))
       .visible(false)
       .menu_model(&save_dropdown_menu)
       .css_classes(["save-dropdown-btn"])
@@ -503,15 +525,15 @@ impl PixieWindow {
     overlay.set_vexpand(true);
 
     let open_btn = gtk4::Button::builder()
-      .label("Open Files…")
+      .label(gettext("Open Files..."))
       .halign(gtk4::Align::Center)
       .css_classes(["suggested-action", "pill"])
       .build();
 
     let status_page = adw::StatusPage::builder()
       .icon_name("image-x-generic-symbolic")
-      .title("View and Edit Images")
-      .description("Drag and drop images here")
+      .title(gettext("View and Edit Images"))
+      .description(gettext("Drag and drop images here"))
       .child(&open_btn)
       .build();
 
@@ -541,13 +563,13 @@ impl PixieWindow {
 
     let nav_prev_btn = gtk4::Button::builder()
       .icon_name("go-previous-symbolic")
-      .tooltip_text("Previous Image")
+      .tooltip_text(gettext("Previous Image"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
     let nav_next_btn = gtk4::Button::builder()
       .icon_name("go-next-symbolic")
-      .tooltip_text("Next Image")
+      .tooltip_text(gettext("Next Image"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
@@ -586,11 +608,11 @@ impl PixieWindow {
       .visible(false)
       .build();
     let crop_cancel_btn = gtk4::Button::builder()
-      .label("Cancel")
+      .label(gettext("Cancel"))
       .css_classes(["floating-toolbar__button"])
       .build();
     let crop_apply_btn = gtk4::Button::builder()
-      .label("Apply")
+      .label(gettext("Apply"))
       .css_classes(["floating-toolbar__button"])
       .build();
     crop_actions_bar.append(&crop_cancel_btn);
@@ -722,7 +744,7 @@ impl PixieWindow {
       .build();
 
     let title_label = gtk4::Label::builder()
-      .label("Metadata Cleaner")
+      .label(gettext("Metadata Cleaner"))
       .halign(gtk4::Align::Start)
       .css_classes(["title-4"])
       .build();
@@ -734,7 +756,7 @@ impl PixieWindow {
     let timestamp_switch = gtk4::Switch::builder().active(true).build();
     let comment_switch = gtk4::Switch::builder().active(true).build();
 
-    let make_switch_row = |label: &str, switch: &gtk4::Switch| {
+    let make_switch_row = |label: String, switch: &gtk4::Switch| {
       let row = gtk4::Box::builder()
         .orientation(gtk4::Orientation::Horizontal)
         .spacing(8)
@@ -751,16 +773,25 @@ impl PixieWindow {
     };
 
     popover_box.append(&make_switch_row(
-      "All EXIF and related metadata",
+      gettext("All EXIF and related metadata"),
       &all_metadata_switch,
     ));
-    popover_box.append(&make_switch_row("GPS coordinates", &gps_switch));
-    popover_box.append(&make_switch_row("Camera models & specs", &camera_switch));
-    popover_box.append(&make_switch_row("Timestamps & dates", &timestamp_switch));
-    popover_box.append(&make_switch_row("Comments & software", &comment_switch));
+    popover_box.append(&make_switch_row(gettext("GPS coordinates"), &gps_switch));
+    popover_box.append(&make_switch_row(
+      gettext("Camera models & specs"),
+      &camera_switch,
+    ));
+    popover_box.append(&make_switch_row(
+      gettext("Timestamps & dates"),
+      &timestamp_switch,
+    ));
+    popover_box.append(&make_switch_row(
+      gettext("Comments & software"),
+      &comment_switch,
+    ));
 
     let clean_action_btn = gtk4::Button::builder()
-      .label("Clean Metadata")
+      .label(gettext("Clean Metadata"))
       .hexpand(true)
       .css_classes(["suggested-action", "pill"])
       .build();
@@ -828,28 +859,30 @@ impl PixieWindow {
         doc.metadata_policy = policy;
 
         if policy.remove_all_metadata {
-          win_clean.show_toast("All EXIF and related metadata will be removed on Save/Convert.");
+          win_clean.show_toast(&gettext(
+            "All EXIF and related metadata will be removed on Save/Convert.",
+          ));
         } else {
           let mut parts = Vec::new();
           if policy.remove_gps {
-            parts.push("GPS");
+            parts.push(gettext("GPS"));
           }
           if policy.remove_camera_info {
-            parts.push("Camera Info");
+            parts.push(gettext("Camera Info"));
           }
           if policy.remove_timestamps {
-            parts.push("Timestamps");
+            parts.push(gettext("Timestamps"));
           }
           if policy.remove_comments {
-            parts.push("Comments");
+            parts.push(gettext("Comments"));
           }
 
           if parts.is_empty() {
-            win_clean.show_toast("Metadata policy updated: preserve all.");
+            win_clean.show_toast(&gettext("Metadata policy updated: preserve all."));
           } else {
-            win_clean.show_toast(&format!(
-              "Metadata marked for removal: {}. Save to apply.",
-              parts.join(", ")
+            win_clean.show_toast(&gettext_replace(
+              "Metadata marked for removal: {metadata}. Save to apply.",
+              &[("metadata", parts.join(", "))],
             ));
           }
         }
@@ -906,10 +939,10 @@ impl PixieWindow {
     window.connect_notify_local(Some("fullscreened"), move |w, _| {
       if w.is_fullscreen() {
         fullscreen_btn_state.set_icon_name("view-restore-symbolic");
-        fullscreen_btn_state.set_tooltip_text(Some("Exit Fullscreen"));
+        fullscreen_btn_state.set_tooltip_text(Some(&gettext("Exit Fullscreen")));
       } else {
         fullscreen_btn_state.set_icon_name("view-fullscreen-symbolic");
-        fullscreen_btn_state.set_tooltip_text(Some("Enter Fullscreen"));
+        fullscreen_btn_state.set_tooltip_text(Some(&gettext("Enter Fullscreen")));
       }
     });
 
@@ -1093,7 +1126,7 @@ impl PixieWindow {
           .set_icon_name("object-rotate-left-symbolic");
         win_key
           .rotate_btn
-          .set_tooltip_text(Some("Rotate image to the left"));
+          .set_tooltip_text(Some(&gettext("Rotate image to the left")));
       }
       glib::Propagation::Proceed
     });
@@ -1107,7 +1140,7 @@ impl PixieWindow {
           .set_icon_name("object-rotate-right-symbolic");
         win_key_release
           .rotate_btn
-          .set_tooltip_text(Some("Rotate image to the right"));
+          .set_tooltip_text(Some(&gettext("Rotate image to the right")));
       }
     });
     window.add_controller(key_controller);
@@ -1131,7 +1164,10 @@ impl PixieWindow {
         match gio::AppInfo::launch_default_for_uri(&uri, None::<&gio::AppLaunchContext>) {
           Ok(_) => {}
           Err(err) => {
-            win_cl_ow.show_toast(&format!("Could not open file: {err}"));
+            win_cl_ow.show_toast(&gettext_replace(
+              "Could not open file: {error}",
+              &[("error", err.to_string())],
+            ));
           }
         }
       }
@@ -1154,26 +1190,29 @@ impl PixieWindow {
           Some(&win_cl_print.window),
         ) {
           Ok(gtk4::PrintOperationResult::Apply) => {
-            win_cl_print.show_toast("Print job sent");
+            win_cl_print.show_toast(&gettext("Print job sent"));
           }
           Ok(gtk4::PrintOperationResult::Cancel) => {
-            win_cl_print.show_toast("Printing cancelled");
+            win_cl_print.show_toast(&gettext("Printing cancelled"));
           }
           Ok(gtk4::PrintOperationResult::InProgress) => {
-            win_cl_print.show_toast("Printing in progress");
+            win_cl_print.show_toast(&gettext("Printing in progress"));
           }
           Ok(gtk4::PrintOperationResult::Error) => {
-            win_cl_print.show_toast("Printing failed");
+            win_cl_print.show_toast(&gettext("Printing failed"));
           }
           Ok(_) => {
-            win_cl_print.show_toast("Printing finished");
+            win_cl_print.show_toast(&gettext("Printing finished"));
           }
           Err(err) => {
-            win_cl_print.show_toast(&format!("Printing failed: {err}"));
+            win_cl_print.show_toast(&gettext_replace(
+              "Printing failed: {error}",
+              &[("error", err.to_string())],
+            ));
           }
         }
       } else {
-        win_cl_print.show_toast("Open an image first");
+        win_cl_print.show_toast(&gettext("Open an image first"));
       }
     });
     window.add_action(&act_print);
@@ -1349,9 +1388,16 @@ impl PixieWindow {
 
   pub fn open_file(&self, path: PathBuf) {
     self.clear_active_toasts();
-    self.show_toast(&format!(
-      "Opening file: {}",
-      path.file_name().unwrap_or_default().to_string_lossy()
+    self.show_toast(&gettext_replace(
+      "Opening file: {file}",
+      &[(
+        "file",
+        path
+          .file_name()
+          .unwrap_or_default()
+          .to_string_lossy()
+          .into_owned(),
+      )],
     ));
 
     // Scan sibling images in the same folder
@@ -1496,11 +1542,11 @@ impl PixieWindow {
         self.enable_sidebar_toggles(true);
         self.update_properties_popover(false);
         self.refresh_window_title();
-        self.show_toast("Operation applied successfully");
+        self.show_toast(&gettext("Operation applied successfully"));
       }
       WorkerOutput::Exported { path } => {
         self.progress_bar.set_visible(false);
-        self.show_toast("Image converted successfully");
+        self.show_toast(&gettext("Image converted successfully"));
         if Some(&path) == self.current_file_path.borrow().as_ref() {
           if let Some(ref doc) = *self.document.borrow() {
             self.saved_history_index.set(Some(doc.history().len()));
@@ -1516,7 +1562,10 @@ impl PixieWindow {
         if self.document.borrow().is_some() {
           self.enable_sidebar_toggles(true);
         }
-        self.show_error_dialog(&format!("Operation failed: {e}"));
+        self.show_error_dialog(&gettext_replace(
+          "Operation failed: {error}",
+          &[("error", e.to_string())],
+        ));
         if self.document.borrow().is_none() {
           self.stack.set_visible_child_name("placeholder");
         }
@@ -1551,7 +1600,10 @@ impl PixieWindow {
           self.worker.spawn_apply_operation(current, op);
         }
         Err(e) => {
-          self.show_error_dialog(&format!("Failed to prepare operation: {e}"));
+          self.show_error_dialog(&gettext_replace(
+            "Failed to prepare operation: {error}",
+            &[("error", e.to_string())],
+          ));
         }
       }
     }
@@ -1559,11 +1611,11 @@ impl PixieWindow {
 
   fn trigger_open_dialog(self: &Rc<Self>) {
     let file_dialog = gtk4::FileDialog::new();
-    file_dialog.set_title("Open Image");
+    file_dialog.set_title(&gettext("Open Image"));
 
     let filter_list = gio::ListStore::new::<gtk4::FileFilter>();
     let filter = gtk4::FileFilter::new();
-    filter.set_name(Some("Image Files"));
+    filter.set_name(Some(&gettext("Image Files")));
     filter.add_mime_type("image/png");
     filter.add_mime_type("image/jpeg");
     filter.add_mime_type("image/webp");
@@ -1593,15 +1645,22 @@ impl PixieWindow {
     let path_borrow = self.current_file_path.borrow();
     if let Some(ref path) = *path_borrow {
       let dialog = adw::AlertDialog::new(
-        Some("Confirm Overwrite"),
-        Some(&format!(
-          "Are you sure you want to overwrite {}?",
-          path.file_name().unwrap_or_default().to_string_lossy()
+        Some(&gettext("Confirm Overwrite")),
+        Some(&gettext_replace(
+          "Are you sure you want to overwrite {file}?",
+          &[(
+            "file",
+            path
+              .file_name()
+              .unwrap_or_default()
+              .to_string_lossy()
+              .into_owned(),
+          )],
         )),
       );
 
-      dialog.add_response("cancel", "Cancel");
-      dialog.add_response("confirm", "Overwrite");
+      dialog.add_response("cancel", &gettext("Cancel"));
+      dialog.add_response("confirm", &gettext("Overwrite"));
       dialog.set_response_appearance("confirm", adw::ResponseAppearance::Destructive);
       dialog.set_close_response("cancel");
 
@@ -1656,7 +1715,7 @@ impl PixieWindow {
       };
 
       let file_dialog = gtk4::FileDialog::new();
-      file_dialog.set_title("Save Image As…");
+      file_dialog.set_title(&gettext("Save Image As..."));
 
       if let Some(path) = self.current_file_path.borrow().clone() {
         if let Some(name) = path.file_name() {
@@ -1666,7 +1725,7 @@ impl PixieWindow {
 
       let filter_list = gio::ListStore::new::<gtk4::FileFilter>();
       let filter = gtk4::FileFilter::new();
-      filter.set_name(Some("Images"));
+      filter.set_name(Some(&gettext("Images")));
       filter.add_mime_type("image/png");
       filter.add_mime_type("image/jpeg");
       filter.add_mime_type("image/webp");
@@ -1737,7 +1796,10 @@ impl PixieWindow {
           );
         }
         Err(e) => {
-          self.show_error_dialog(&format!("Failed to prepare export: {e}"));
+          self.show_error_dialog(&gettext_replace(
+            "Failed to prepare export: {error}",
+            &[("error", e.to_string())],
+          ));
         }
       }
     }
@@ -1763,13 +1825,16 @@ impl PixieWindow {
 
     drop(doc_borrow);
     if let Some(e) = undo_error {
-      self.show_error_dialog(&format!("Failed to undo operation: {e}"));
+      self.show_error_dialog(&gettext_replace(
+        "Failed to undo operation: {error}",
+        &[("error", e.to_string())],
+      ));
       return;
     }
     if did_undo {
       self.update_properties_popover(false);
       self.refresh_window_title();
-      self.show_toast("Undo applied");
+      self.show_toast(&gettext("Undo applied"));
     }
   }
 
@@ -1793,13 +1858,16 @@ impl PixieWindow {
 
     drop(doc_borrow);
     if let Some(e) = redo_error {
-      self.show_error_dialog(&format!("Failed to redo operation: {e}"));
+      self.show_error_dialog(&gettext_replace(
+        "Failed to redo operation: {error}",
+        &[("error", e.to_string())],
+      ));
       return;
     }
     if did_redo {
       self.update_properties_popover(false);
       self.refresh_window_title();
-      self.show_toast("Redo applied");
+      self.show_toast(&gettext("Redo applied"));
     }
   }
 
@@ -1919,14 +1987,14 @@ impl PixieWindow {
       .build();
 
     let title_label = gtk4::Label::builder()
-      .label("Edit Metadata")
+      .label(gettext("Edit Metadata"))
       .halign(gtk4::Align::Start)
       .css_classes(["title-4"])
       .build();
     content.append(&title_label);
 
     // Helper: labelled entry row (no placeholder)
-    let make_field = |label_text: &str| -> (gtk4::Label, gtk4::Entry) {
+    let make_field = |label_text: String| -> (gtk4::Label, gtk4::Entry) {
       let lbl = gtk4::Label::builder()
         .label(label_text)
         .halign(gtk4::Align::Start)
@@ -1935,10 +2003,10 @@ impl PixieWindow {
       (lbl, entry)
     };
 
-    let (desc_lbl, description_entry) = make_field("Image description");
-    let (artist_lbl, artist_entry) = make_field("Artist");
-    let (copyright_lbl, copyright_entry) = make_field("Copyright");
-    let (software_lbl, software_entry) = make_field("Software");
+    let (desc_lbl, description_entry) = make_field(gettext("Image description"));
+    let (artist_lbl, artist_entry) = make_field(gettext("Artist"));
+    let (copyright_lbl, copyright_entry) = make_field(gettext("Copyright"));
+    let (software_lbl, software_entry) = make_field(gettext("Software"));
 
     for (lbl, entry) in [
       (&desc_lbl, &description_entry),
@@ -1991,7 +2059,7 @@ impl PixieWindow {
     }
 
     let apply_btn = gtk4::Button::builder()
-      .label("Apply")
+      .label(gettext("Apply"))
       .hexpand(true)
       .css_classes(["suggested-action", "pill"])
       .build();
@@ -2021,7 +2089,9 @@ impl PixieWindow {
         doc.metadata_edits.copyright = resolve(&c_entry);
         doc.metadata_edits.software = resolve(&s_entry);
         changed = true;
-        self_apply.show_toast("Metadata edits saved. Changes will be applied on Save/Convert.");
+        self_apply.show_toast(&gettext(
+          "Metadata edits saved. Changes will be applied on Save/Convert.",
+        ));
       }
       drop(doc_borrow);
       if changed {
@@ -2097,14 +2167,14 @@ impl PixieWindow {
   pub fn open_file_with_confirmation(self: &Rc<Self>, path: PathBuf) {
     if self.has_unsaved_changes() {
       let dialog = adw::AlertDialog::new(
-        Some("Discard Changes?"),
-        Some(
+        Some(&gettext("Discard Changes?")),
+        Some(&gettext(
           "The image has unsaved changes. Do you want to discard them and open the other image?",
-        ),
+        )),
       );
 
-      dialog.add_response("cancel", "Cancel");
-      dialog.add_response("discard", "Discard");
+      dialog.add_response("cancel", &gettext("Cancel"));
+      dialog.add_response("discard", &gettext("Discard"));
       dialog.set_response_appearance("discard", adw::ResponseAppearance::Destructive);
       dialog.set_close_response("cancel");
 
@@ -2131,12 +2201,14 @@ impl PixieWindow {
       drop(images);
       if self.has_unsaved_changes() {
         let dialog = adw::AlertDialog::new(
-          Some("Discard Changes?"),
-          Some("The image has unsaved changes. Do you want to discard them and switch images?"),
+          Some(&gettext("Discard Changes?")),
+          Some(&gettext(
+            "The image has unsaved changes. Do you want to discard them and switch images?",
+          )),
         );
 
-        dialog.add_response("cancel", "Cancel");
-        dialog.add_response("discard", "Discard");
+        dialog.add_response("cancel", &gettext("Cancel"));
+        dialog.add_response("discard", &gettext("Discard"));
         dialog.set_response_appearance("discard", adw::ResponseAppearance::Destructive);
         dialog.set_close_response("cancel");
 
@@ -2198,12 +2270,14 @@ impl PixieWindow {
 
   fn prompt_close_confirmation(self: &Rc<Self>) {
     let dialog = adw::AlertDialog::new(
-      Some("Discard Changes?"),
-      Some("The image has unsaved changes. Do you want to discard them and close the app?"),
+      Some(&gettext("Discard Changes?")),
+      Some(&gettext(
+        "The image has unsaved changes. Do you want to discard them and close the app?",
+      )),
     );
 
-    dialog.add_response("cancel", "Cancel");
-    dialog.add_response("discard", "Discard");
+    dialog.add_response("cancel", &gettext("Cancel"));
+    dialog.add_response("discard", &gettext("Discard"));
     dialog.set_response_appearance("discard", adw::ResponseAppearance::Destructive);
     dialog.set_close_response("cancel");
 
@@ -2221,8 +2295,8 @@ impl PixieWindow {
   }
 
   fn show_error_dialog(&self, message: &str) {
-    let dialog = adw::AlertDialog::new(Some("Error"), Some(message));
-    dialog.add_response("ok", "OK");
+    let dialog = adw::AlertDialog::new(Some(&gettext("Error")), Some(message));
+    dialog.add_response("ok", &gettext("OK"));
     dialog.set_close_response("ok");
     dialog.choose(Some(&self.window), None::<&gio::Cancellable>, |_| {});
   }
@@ -2283,7 +2357,7 @@ impl PixieWindow {
         .parent()
         .and_then(|p| p.file_name())
         .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "Unknown".to_string());
+        .unwrap_or_else(|| gettext("Unknown"));
       self.properties_folder_label.set_label(&folder_name);
 
       let format_str = if let Some(ref doc) = *self.document.borrow() {
@@ -2292,14 +2366,14 @@ impl PixieWindow {
         path
           .extension()
           .map(|e| e.to_string_lossy().to_string().to_uppercase())
-          .unwrap_or_else(|| "Unknown".to_string())
+          .unwrap_or_else(|| gettext("Unknown"))
       };
       self.properties_format_label.set_label(&format_str);
 
       let size_str = if let Some(ref img) = self.canvas.state.borrow().image {
         format!("{} × {}", img.width(), img.height())
       } else {
-        "Unknown".to_string()
+        gettext("Unknown")
       };
       self.properties_size_label.set_label(&size_str);
 
@@ -2310,7 +2384,7 @@ impl PixieWindow {
         let aspect_ratio = if height > 0 {
           format!("{:.2}:1", width as f64 / height as f64)
         } else {
-          "Unknown".to_string()
+          gettext("Unknown")
         };
         self.properties_aspect_ratio_label.set_label(&aspect_ratio);
       }
@@ -2330,19 +2404,23 @@ impl PixieWindow {
           .created()
           .ok()
           .map(format_system_time)
-          .unwrap_or_else(|| "Unknown".to_string());
+          .unwrap_or_else(|| gettext("Unknown"));
         self.properties_created_label.set_label(&created_str);
 
         let modified_str = metadata
           .modified()
           .ok()
           .map(format_system_time)
-          .unwrap_or_else(|| "Unknown".to_string());
+          .unwrap_or_else(|| gettext("Unknown"));
         self.properties_modified_label.set_label(&modified_str);
       } else {
-        self.properties_file_size_label.set_label("Unknown");
-        self.properties_created_label.set_label("Unknown");
-        self.properties_modified_label.set_label("Unknown");
+        self
+          .properties_file_size_label
+          .set_label(&gettext("Unknown"));
+        self.properties_created_label.set_label(&gettext("Unknown"));
+        self
+          .properties_modified_label
+          .set_label(&gettext("Unknown"));
       }
 
       let metadata_fields = pixie_core::read_image_metadata_fields(path);
@@ -2390,5 +2468,5 @@ fn format_system_time(system_time: std::time::SystemTime) -> String {
       }
     }
   }
-  "Unknown".to_string()
+  gettext("Unknown")
 }

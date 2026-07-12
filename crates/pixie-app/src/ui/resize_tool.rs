@@ -1,4 +1,5 @@
 use super::canvas::PixieCanvas;
+use crate::i18n::{gettext, gettext_replace};
 use gtk4::prelude::*;
 use pixie_core::{FilterType, ImageOperation, ResizeOperation};
 use std::cell::Cell;
@@ -10,13 +11,15 @@ pub struct ResizeToolView {
 
 impl ResizeToolView {
   const FILTER_IDS: [&'static str; 5] = ["nearest", "triangle", "catmull", "gaussian", "lanczos3"];
-  const FILTER_LABELS: [&'static str; 5] = [
-    "Nearest Neighbor",
-    "Triangle (Bilinear)",
-    "Catmull-Rom (Bicubic)",
-    "Gaussian",
-    "Lanczos3 (High Quality)",
-  ];
+  fn filter_labels() -> [String; 5] {
+    [
+      gettext("Nearest Neighbor"),
+      gettext("Triangle (Bilinear)"),
+      gettext("Catmull-Rom (Bicubic)"),
+      gettext("Gaussian"),
+      gettext("Lanczos3 (High Quality)"),
+    ]
+  }
 
   fn filter_from_index(index: u32) -> FilterType {
     match Self::FILTER_IDS.get(index as usize).copied() {
@@ -64,7 +67,7 @@ impl ResizeToolView {
       .build();
 
     let title = gtk4::Label::builder()
-      .label("Resize Image")
+      .label(gettext("Resize Image"))
       .halign(gtk4::Align::Start)
       .css_classes(["title-3"])
       .build();
@@ -85,7 +88,7 @@ impl ResizeToolView {
 
     // SpinButtons
     let width_label = gtk4::Label::builder()
-      .label("Width (pixels)")
+      .label(gettext("Width (pixels)"))
       .halign(gtk4::Align::Start)
       .build();
     container.append(&width_label);
@@ -96,7 +99,7 @@ impl ResizeToolView {
     container.append(&width_spin);
 
     let height_label = gtk4::Label::builder()
-      .label("Height (pixels)")
+      .label(gettext("Height (pixels)"))
       .halign(gtk4::Align::Start)
       .build();
     container.append(&height_label);
@@ -108,7 +111,7 @@ impl ResizeToolView {
 
     // Percentage SpinButton
     let pct_label = gtk4::Label::builder()
-      .label("Percentage (%)")
+      .label(gettext("Percentage (%)"))
       .halign(gtk4::Align::Start)
       .build();
     container.append(&pct_label);
@@ -124,7 +127,7 @@ impl ResizeToolView {
       .spacing(6)
       .build();
     let aspect_lock_label = gtk4::Label::builder()
-      .label("Lock Aspect Ratio")
+      .label(gettext("Lock Aspect Ratio"))
       .hexpand(true)
       .halign(gtk4::Align::Start)
       .build();
@@ -142,7 +145,7 @@ impl ResizeToolView {
       .spacing(6)
       .build();
     let enlarge_label = gtk4::Label::builder()
-      .label("Prevent Enlargement")
+      .label(gettext("Prevent Enlargement"))
       .hexpand(true)
       .halign(gtk4::Align::Start)
       .build();
@@ -156,12 +159,14 @@ impl ResizeToolView {
 
     // Interpolation
     let filter_label = gtk4::Label::builder()
-      .label("Interpolation Method")
+      .label(gettext("Interpolation Method"))
       .halign(gtk4::Align::Start)
       .build();
     container.append(&filter_label);
 
-    let filter_combo = gtk4::DropDown::from_strings(&Self::FILTER_LABELS);
+    let filter_labels = Self::filter_labels();
+    let filter_label_refs: Vec<&str> = filter_labels.iter().map(String::as_str).collect();
+    let filter_combo = gtk4::DropDown::from_strings(&filter_label_refs);
     filter_combo.set_selected(4);
     filter_combo.set_hexpand(true);
     container.append(&filter_combo);
@@ -175,24 +180,36 @@ impl ResizeToolView {
       .build();
 
     let info_dims = gtk4::Label::builder()
-      .label(&format!("Output Dimensions: {orig_w} × {orig_h}"))
+      .label(gettext_replace(
+        "Output Dimensions: {width} x {height}",
+        &[
+          ("width", orig_w.to_string()),
+          ("height", orig_h.to_string()),
+        ],
+      ))
       .halign(gtk4::Align::Start)
       .build();
     let info_mem = gtk4::Label::builder()
-      .label(&format!(
-        "Estimated New File Size: {}",
-        current_file_size
-          .map(Self::format_size)
-          .unwrap_or_else(|| "Unknown".to_string())
+      .label(gettext_replace(
+        "Estimated New File Size: {size}",
+        &[(
+          "size",
+          current_file_size
+            .map(Self::format_size)
+            .unwrap_or_else(|| gettext("Unknown")),
+        )],
       ))
       .halign(gtk4::Align::Start)
       .build();
     let info_current_size = gtk4::Label::builder()
-      .label(&format!(
-        "Current File Size: {}",
-        current_file_size
-          .map(Self::format_size)
-          .unwrap_or_else(|| "Unknown".to_string())
+      .label(gettext_replace(
+        "Current File Size: {size}",
+        &[(
+          "size",
+          current_file_size
+            .map(Self::format_size)
+            .unwrap_or_else(|| gettext("Unknown")),
+        )],
       ))
       .halign(gtk4::Align::Start)
       .build();
@@ -209,7 +226,10 @@ impl ResizeToolView {
       let info_dims = info_dims.clone();
       let info_mem = info_mem.clone();
       move |w: u32, h: u32| {
-        info_dims.set_text(&format!("Output Dimensions: {w} × {h}"));
+        info_dims.set_text(&gettext_replace(
+          "Output Dimensions: {width} x {height}",
+          &[("width", w.to_string()), ("height", h.to_string())],
+        ));
         let estimated_size = current_file_size.map(|size| {
           let scale = (f64::from(w) * f64::from(h)) / (f64::from(orig_w) * f64::from(orig_h));
           let scaled = ((size as f64) * scale).round();
@@ -220,11 +240,14 @@ impl ResizeToolView {
           }
         });
 
-        info_mem.set_text(&format!(
-          "Estimated File Size: {}",
-          estimated_size
-            .map(Self::format_size)
-            .unwrap_or_else(|| "Unknown".to_string())
+        info_mem.set_text(&gettext_replace(
+          "Estimated File Size: {size}",
+          &[(
+            "size",
+            estimated_size
+              .map(Self::format_size)
+              .unwrap_or_else(|| gettext("Unknown")),
+          )],
         ));
       }
     };
@@ -334,7 +357,7 @@ impl ResizeToolView {
       .build();
 
     let apply_btn = gtk4::Button::builder()
-      .label("Resize")
+      .label(gettext("Resize"))
       .hexpand(true)
       .css_classes(["suggested-action", "pill"])
       .build();

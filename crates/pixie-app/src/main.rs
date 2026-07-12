@@ -3,6 +3,7 @@
 
 mod application;
 mod errors;
+mod i18n;
 mod logging;
 mod settings;
 mod ui;

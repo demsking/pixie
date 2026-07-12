@@ -1,4 +1,5 @@
 use super::canvas::{CropMode, PixieCanvas};
+use crate::i18n::gettext;
 use gtk4::prelude::*;
 use std::rc::Rc;
 
@@ -18,14 +19,14 @@ impl CropToolView {
       .build();
 
     let title = gtk4::Label::builder()
-      .label("Crop Image")
+      .label(gettext("Crop Image"))
       .halign(gtk4::Align::Start)
       .css_classes(["title-3"])
       .build();
     container.append(&title);
 
     let orientation_subtitle = gtk4::Label::builder()
-      .label("Orientation")
+      .label(gettext("Orientation"))
       .halign(gtk4::Align::Start)
       .build();
     container.append(&orientation_subtitle);
@@ -35,13 +36,13 @@ impl CropToolView {
       .spacing(6)
       .build();
     let landscape_btn = gtk4::ToggleButton::builder()
-      .label("Landscape")
+      .label(gettext("Landscape"))
       .active(true)
       .hexpand(true)
       .css_classes(["crop-ratio-chip", "crop-orientation-chip"])
       .build();
     let portrait_btn = gtk4::ToggleButton::builder()
-      .label("Portrait")
+      .label(gettext("Portrait"))
       .hexpand(true)
       .css_classes(["crop-ratio-chip", "crop-orientation-chip"])
       .build();
@@ -50,7 +51,7 @@ impl CropToolView {
     container.append(&orientation_row);
 
     let ratio_subtitle = gtk4::Label::builder()
-      .label("Aspect ratio")
+      .label(gettext("Aspect ratio"))
       .halign(gtk4::Align::Start)
       .build();
     container.append(&ratio_subtitle);
@@ -63,14 +64,14 @@ impl CropToolView {
       .build();
 
     let ratio_buttons: Vec<(CropMode, gtk4::ToggleButton)> = [
-      (CropMode::Free, "Free"),
-      (CropMode::Original, "Original"),
-      (CropMode::Square11, "Square"),
-      (CropMode::Circle, "Circle"),
-      (CropMode::Ratio54, "5:4"),
-      (CropMode::Ratio43, "4:3"),
-      (CropMode::Ratio32, "3:2"),
-      (CropMode::Ratio169, "16:9"),
+      (CropMode::Free, gettext("Free")),
+      (CropMode::Original, gettext("Original")),
+      (CropMode::Square11, gettext("Square")),
+      (CropMode::Circle, gettext("Circle")),
+      (CropMode::Ratio54, "5:4".to_string()),
+      (CropMode::Ratio43, "4:3".to_string()),
+      (CropMode::Ratio32, "3:2".to_string()),
+      (CropMode::Ratio169, "16:9".to_string()),
     ]
     .into_iter()
     .map(|(mode, label)| {
@@ -202,7 +203,7 @@ impl CropToolView {
     });
 
     let start_cropping_btn = gtk4::Button::builder()
-      .label("Start Cropping")
+      .label(gettext("Start Cropping"))
       .hexpand(true)
       .css_classes(["suggested-action", "pill"])
       .build();
