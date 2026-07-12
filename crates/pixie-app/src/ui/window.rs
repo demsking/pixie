@@ -1069,6 +1069,7 @@ impl PixieWindow {
 
     // print action
     let act_print = gio::SimpleAction::new("print", None);
+    act_print.set_enabled(false);
     let win_cl_print = win_struct.clone();
     act_print.connect_activate(move |_, _| {
       if let Some(path) = win_cl_print.current_file_path.borrow().clone() {
@@ -1392,6 +1393,13 @@ impl PixieWindow {
         self
           .window
           .lookup_action("open-with")
+          .unwrap()
+          .downcast::<gio::SimpleAction>()
+          .unwrap()
+          .set_enabled(true);
+        self
+          .window
+          .lookup_action("print")
           .unwrap()
           .downcast::<gio::SimpleAction>()
           .unwrap()
