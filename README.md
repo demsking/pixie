@@ -6,22 +6,24 @@
 [![documentation](https://img.shields.io/badge/docs-gitlab--pages-blue)](https://demsking.gitlab.io/pixie)
 [![license](https://img.shields.io/badge/license-GPL--3.0--or--later-green)](https://gitlab.com/demsking/pixie/-/blob/main/LICENSE)
 
-Pixie is a modern, secure, and lightweight GTK4 image processor built with Rust.
-It provides focused tools for cropping, resizing, rotating, flipping, and
-converting images without the complexity of a complete graphics editor.
+Pixie is a modern, lightweight image processor for everyday edits. It provides
+focused tools for cropping, resizing, cleaning metadata, removing backgrounds,
+rotating, flipping, mirroring, and converting images without the complexity of a
+complete graphics editor.
 
 ![Screenshot Placeholder](pages/logo.png)
 
 ## Features
 
-- **Responsive GTK4 Interface**: Built using Libadwaita conforming to GNOME Human Interface Guidelines.
-- **Non-Destructive Pipeline**: Edits are stored as an operation stack; full-resolution rendering is lazy.
-- **Secure File Decoding**: Pre-verifies image headers to prevent decompression bombs.
-- **Interactive Cropping**: Free aspect ratio, circle crop, standard ratios (1:1, 5:4, 4:3, 3:2, 16:9), and optional rule-of-thirds grid.
-- **Checked Resizing**: Prevent enlargement, aspect ratio locking, and high-quality Lanczos3 interpolation.
-- **Accurate Rotations**: Lossless 90/180-degree rotations, arbitrary angle rotations with canvas expansion and custom backgrounds.
-- **Metadata Protection**: stripping GPS and camera details by default to protect privacy.
-- **Keyboard Shortcuts**: Common operations bound to simple shortcuts.
+- **Crop**: Trim away unwanted edges and keep the part of the picture that matters.
+- **Resize**: Make images smaller or fit them to the size you need for sharing, posting, or saving space.
+- **Clean Metadata**: Remove hidden details like location, camera, and editing information before you share an image.
+- **Edit Metadata**: Review and update image details when you want the file to carry the right information.
+- **Transparent Background**: Remove a background so the subject can stand on its own in designs, documents, and profile images.
+- **Rotate**: Turn sideways or upside-down photos into the correct orientation.
+- **Mirror Image**: Reverse a picture left to right when it looks better facing the other way.
+- **Flip**: Flip an image from top to bottom to quickly correct or experiment with its direction.
+- **Convert Images**: Save an image in another format when you need a different file type for a website, app, or device.
 
 ## Supported Formats
 
@@ -33,53 +35,9 @@ converting images without the complexity of a complete graphics editor.
 - Static GIF
 - AVIF (native support)
 
-## Installation & Setup
-
-### 1. Devbox Setup (Recommended)
-
-Make sure you have [Devbox](https://www.jetify.com/docs) installed.
-
-```bash
-git clone git@gitlab.com:demsking/pixie.git
-cd pixie
-devbox install
-devbox run bootstrap
-devbox shell
-make check
-make test
-make run
-```
-
-### 2. Manual Setup (Without Devbox)
-
-#### Fedora Setup
-
-```bash
-sudo dnf install gtk4-devel libadwaita-devel pkgconf make rustup
-rustup-init
-make bootstrap
-```
-
-#### Debian or Ubuntu Setup
-
-```bash
-sudo apt install libgtk-4-dev libadwaita-1-dev pkg-config make rustup
-rustup-init
-make bootstrap
-```
-
-### 3. Flatpak Setup
-
-```bash
-make flatpak-build
-make flatpak-run
-```
-
 ## Documentation
 
-The complete documentation is available at:
-
-https://demsking.gitlab.io/pixie
+The complete documentation is available at: [https://demsking.gitlab.io/pixie](https://demsking.gitlab.io/pixie)
 
 ## Contribute
 
