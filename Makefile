@@ -1,4 +1,6 @@
 .DEFAULT_GOAL := help
+APP_MANIFEST := crates/pixie-app/Cargo.toml
+CORE_MANIFEST := crates/pixie-core/Cargo.toml
 
 # Colors
 YELLOW := \033[33m
@@ -119,36 +121,105 @@ flatpak-run: ## Run flatpak app
 package: ## Package the application
 	@bash scripts/package.sh
 
-.PHONY: bump-beta
-bump-beta: ## Bump version to next beta (x.y.z-beta.N)
-	@$(MAKE) version-bump BUMP_KIND=beta
+.PHONY: check-clean
+check-clean:
+	@test -z "$$(git status --porcelain)" || (echo "Working tree is not clean" && exit 1)
 
-.PHONY: bump-patch
-bump-patch: ## Bump patch version (x.y.z -> x.y.z+1)
-	@$(MAKE) version-bump BUMP_KIND=patch
-
-.PHONY: bump-minor
-bump-minor: ## Bump minor version (x.y.z -> x.y+1.0)
-	@$(MAKE) version-bump BUMP_KIND=minor
-
-.PHONY: bump-major
-bump-major: ## Bump major version (x.y.z -> x+1.0.0)
-	@$(MAKE) version-bump BUMP_KIND=major
-
-.PHONY: version-bump
-version-bump:
+.PHONY: bump
+bump:
 	@set -eu; \
-	current=$$(sed -n 's/^version = "\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\(-beta\.[0-9][0-9]*\)\{0,1\}\(\+[A-Za-z0-9.-][A-Za-z0-9.-]*\)\{0,1\}\)"$$/\1/p' crates/pixie-app/Cargo.toml | head -n1); \
+	current="$$(sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$(APP_MANIFEST)" | head -n 1)"; \
 	if [ -z "$$current" ]; then \
-		echo "Could not parse current version from crates/pixie-app/Cargo.toml"; \
+		echo "Could not parse current version from $(APP_MANIFEST)" >&2; \
 		exit 1; \
 	fi; \
-	next=$$(perl -e 'my ($$v, $$kind) = @ARGV; if ($$v !~ /^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?(?:\+[0-9A-Za-z.-]+)?$$/) { die "Unsupported version format: $$v\\n"; } my ($$maj, $$min, $$pat, $$beta) = ($$1, $$2, $$3, $$4); my $$out; if ($$kind eq "beta") { $$out = defined $$beta ? "$$maj.$$min.$$pat-beta." . ($$beta + 1) : "$$maj.$$min.$$pat-beta.1"; } elsif ($$kind eq "patch") { $$out = "$$maj.$$min." . ($$pat + 1); } elsif ($$kind eq "minor") { $$out = "$$maj." . ($$min + 1) . ".0"; } elsif ($$kind eq "major") { $$out = ($$maj + 1) . ".0.0"; } else { die "Unknown bump kind: $$kind\\n"; } print $$out;' "$$current" "$(BUMP_KIND)"); \
-	echo "Bumping version: $$current -> $$next"; \
-	for file in crates/pixie-app/Cargo.toml crates/pixie-core/Cargo.toml; do \
-		awk -v next="$$next" 'BEGIN { in_package = 0; updated = 0 } /^\[package\]$$/ { in_package = 1; print; next } in_package && !updated && /^version = "/ { print "version = \"" next "\""; updated = 1; in_package = 0; next } { print } END { if (!updated) { exit 2 } }' "$$file" > "$$file.tmp"; \
-		mv "$$file.tmp" "$$file"; \
+	new_version="$$(perl -e '\
+		my ($$version, $$kind) = @ARGV; \
+		$$version =~ /^(\d+)\.(\d+)\.(\d+)(?:-beta(?:\.(\d+))?)?(?:\+[0-9A-Za-z.-]+)?$$/ \
+			or die "Unsupported version format: $$version\n"; \
+		my ($$major, $$minor, $$patch, $$beta) = ($$1, $$2, $$3, $$4); \
+		if ($$kind eq "beta") { \
+			print defined $$beta \
+				? "$$major.$$minor.$$patch-beta." . ($$beta + 1) \
+				: "$$major.$$minor.$$patch-beta.1"; \
+		} elsif ($$kind eq "stable") { \
+      die "Version is already stable: $$version\n" \
+        unless $$version =~ /-beta(?:\.\d+)?(?:\+[0-9A-Za-z.-]+)?$$/; \
+      print "$$major.$$minor.$$patch"; \
+    } elsif ($$kind eq "patch") { \
+			print "$$major.$$minor." . ($$patch + 1); \
+		} elsif ($$kind eq "minor") { \
+			print "$$major." . ($$minor + 1) . ".0"; \
+		} elsif ($$kind eq "major") { \
+			print ($$major + 1) . ".0.0"; \
+		} elsif ($$kind eq "major") { \
+      print ($$major + 1) . ".0.0"; \
+    } else { \
+      die "Unknown bump kind: $$kind\n"; \
+    } \
+	' "$$current" "$(BUMP_KIND)")"; \
+	echo "Bumping version: $$current -> $$new_version"; \
+	for file in "$(APP_MANIFEST)" "$(CORE_MANIFEST)"; do \
+		tmp="$$(mktemp "$${file}.XXXXXX")"; \
+		trap 'rm -f "$$tmp"' EXIT INT TERM; \
+		awk -v new_version="$$new_version" '\
+			BEGIN { in_package = 0; updated = 0 } \
+			/^\[package\][[:space:]]*$$/ { \
+				in_package = 1; \
+				print; \
+				next; \
+			} \
+			in_package && !updated && /^[[:space:]]*version[[:space:]]*=/ { \
+				print "version = \"" new_version "\""; \
+				updated = 1; \
+				in_package = 0; \
+				next; \
+			} \
+			{ print } \
+			END { \
+				if (!updated) \
+					exit 2; \
+			} \
+		' "$$file" > "$$tmp" || { \
+			echo "Could not update version in $$file" >&2; \
+			exit 1; \
+		}; \
+		mv "$$tmp" "$$file"; \
+		trap - EXIT INT TERM; \
 	done
 
+.PHONY: beta
+beta: check-clean ## Bump version to next beta (x.y.z-beta.N)
+	@$(MAKE) bump BUMP_KIND=beta
+
+.PHONY: stable
+stable: check-clean ## Promote beta version to stable (x.y.z-beta.N -> x.y.z)
+	@$(MAKE) bump BUMP_KIND=stable
+
+.PHONY: patch
+patch: check-clean ## Bump patch version (x.y.z -> x.y.z+1)
+	@$(MAKE) bump BUMP_KIND=patch
+
+.PHONY: minor
+minor: check-clean ## Bump minor version (x.y.z -> x.y+1.0)
+	@$(MAKE) bump BUMP_KIND=minor
+
+.PHONY: major
+major: check-clean ## Bump major version (x.y.z -> x+1.0.0)
+	@$(MAKE) bump BUMP_KIND=major
+
+.PHONY: release
+release: check-clean
+	@set -eu; \
+	version="$$(sed -nE 's/^[[:space:]]*version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$(APP_MANIFEST)" | head -n 1)"; \
+	if [ -z "$$version" ]; then \
+		echo "Could not parse version from $(APP_MANIFEST)" >&2; \
+		exit 1; \
+	fi; \
+  cargo build; \
+	git add "$(APP_MANIFEST)" "$(CORE_MANIFEST)" Cargo.lock; \
+	git commit -m "chore(release): bump version to $$version"; \
+	git tag --annotate "v$$version" --message "Release v$$version"
+
 .PHONY: ci
-ci: fmt-check lint test-all security docs-build build-release ## Run all CI steps locally
+ci: fmt-check lint test-all security build-release ## Run all CI steps locally
