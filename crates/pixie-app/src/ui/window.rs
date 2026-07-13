@@ -890,6 +890,8 @@ impl PixieWindow {
     let popover_clean = metadata_popover.clone();
 
     clean_action_btn.connect_clicked(move |_| {
+      popover_clean.popdown();
+
       let mut doc_borrow = win_clean.document.borrow_mut();
       if let Some(ref mut doc) = *doc_borrow {
         let policy = pixie_core::MetadataPolicy {
@@ -930,7 +932,6 @@ impl PixieWindow {
           }
         }
       }
-      popover_clean.popdown();
     });
 
     let win_edit = win_struct.clone();
@@ -2030,6 +2031,7 @@ impl PixieWindow {
       &self.canvas,
       current_file_size,
       move |op| {
+        self_cl.close_tool_popover();
         self_cl.apply_image_operation(op);
       },
       move || {},
@@ -2173,6 +2175,8 @@ impl PixieWindow {
     let c_entry = copyright_entry.clone();
     let s_entry = software_entry.clone();
     apply_btn.connect_clicked(move |_| {
+      popover_apply.popdown();
+
       let mut changed = false;
       let mut doc_borrow = self_apply.document.borrow_mut();
       if let Some(ref mut doc) = *doc_borrow {
@@ -2181,15 +2185,12 @@ impl PixieWindow {
         doc.metadata_edits.copyright = resolve(&c_entry);
         doc.metadata_edits.software = resolve(&s_entry);
         changed = true;
-        self_apply.show_toast(&gettext(
-          "Metadata edits saved. Changes will be applied on Save/Convert.",
-        ));
+        self_apply.show_toast(&gettext("Metadata edits saved."));
       }
       drop(doc_borrow);
       if changed {
         self_apply.refresh_window_title();
       }
-      popover_apply.popdown();
     });
 
     // Press Enter in any field triggers apply
