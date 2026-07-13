@@ -1,6 +1,6 @@
 [package]
 name = "pixie-core"
-version = "1.0.0-beta"
+version = "1.0.0"
 edition = "2024"
 authors.workspace = true
 license.workspace = true
