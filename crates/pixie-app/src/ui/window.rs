@@ -4,6 +4,7 @@ use libadwaita::prelude::*;
 use pixie_core::{
   CircleMaskOperation, CropOperation, ExportOptions, FlipDirection, FlipOperation, ImageOperation,
   MetadataEdits, MetadataValueEdit, PixieDocument, RotateOperation, RotationType,
+  TransparentBackgroundOperation,
 };
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -50,6 +51,7 @@ pub struct PixieWindow {
   metadata_btn: gtk4::MenuButton,
   metadata_edit_btn: gtk4::Button,
   rotate_btn: gtk4::Button,
+  transparent_background_btn: gtk4::Button,
   mirror_btn: gtk4::Button,
   flip_btn: gtk4::Button,
   crop_actions_bar: gtk4::Box,
@@ -194,6 +196,13 @@ impl PixieWindow {
     let metadata_edit_btn = gtk4::Button::builder()
       .icon_name("document-edit-symbolic")
       .tooltip_text(gettext("Edit Metadata"))
+      .sensitive(false)
+      .css_classes(["floating-toolbar__button"])
+      .build();
+
+    let transparent_background_btn = gtk4::Button::builder()
+      .icon_name("eraser2-symbolic")
+      .tooltip_text(gettext("Make Background Transparent"))
       .sensitive(false)
       .css_classes(["floating-toolbar__button"])
       .build();
@@ -592,6 +601,7 @@ impl PixieWindow {
     tool_bar.append(&resize_btn);
     tool_bar.append(&metadata_btn);
     tool_bar.append(&metadata_edit_btn);
+    tool_bar.append(&transparent_background_btn);
     tool_bar.append(&rotate_btn);
     tool_bar.append(&mirror_btn);
     tool_bar.append(&flip_btn);
@@ -680,6 +690,7 @@ impl PixieWindow {
       metadata_btn: metadata_btn.clone(),
       metadata_edit_btn: metadata_edit_btn.clone(),
       rotate_btn: rotate_btn.clone(),
+      transparent_background_btn: transparent_background_btn.clone(),
       mirror_btn: mirror_btn.clone(),
       flip_btn: flip_btn.clone(),
       crop_actions_bar: crop_actions_bar.clone(),
@@ -1010,6 +1021,13 @@ impl PixieWindow {
         RotationType::Cw90
       };
       win_rotate.apply_image_operation(ImageOperation::Rotate(RotateOperation::new(rotation)));
+    });
+
+    let win_transparent_background = win_struct.clone();
+    transparent_background_btn.connect_clicked(move |_| {
+      win_transparent_background.apply_image_operation(ImageOperation::TransparentBackground(
+        TransparentBackgroundOperation::new(12),
+      ));
     });
 
     // Sidebar tools switches
@@ -1593,6 +1611,7 @@ impl PixieWindow {
     self.metadata_btn.set_sensitive(enable);
     self.metadata_edit_btn.set_sensitive(enable);
     self.rotate_btn.set_sensitive(enable);
+    self.transparent_background_btn.set_sensitive(enable);
     self.mirror_btn.set_sensitive(enable);
     self.flip_btn.set_sensitive(enable);
   }

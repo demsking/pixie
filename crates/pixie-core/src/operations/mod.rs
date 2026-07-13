@@ -4,6 +4,7 @@ pub mod flatten;
 pub mod flip;
 pub mod resize;
 pub mod rotate;
+pub mod transparent_background;
 
 pub use circle_mask::CircleMaskOperation;
 pub use crop::CropOperation;
@@ -11,6 +12,7 @@ pub use flatten::FlattenOperation;
 pub use flip::FlipOperation;
 pub use resize::{FilterType, ResizeOperation};
 pub use rotate::RotateOperation;
+pub use transparent_background::TransparentBackgroundOperation;
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ImageOperation {
@@ -20,6 +22,7 @@ pub enum ImageOperation {
   Flip(FlipOperation),
   CircleMask(CircleMaskOperation),
   Flatten(FlattenOperation),
+  TransparentBackground(TransparentBackgroundOperation),
 }
 
 impl ImageOperation {
@@ -31,6 +34,7 @@ impl ImageOperation {
       ImageOperation::Flip(op) => op.apply(img),
       ImageOperation::CircleMask(op) => op.apply(img),
       ImageOperation::Flatten(op) => op.apply(img),
+      ImageOperation::TransparentBackground(op) => op.apply(img),
     }
   }
 }

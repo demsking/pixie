@@ -34,4 +34,5 @@ pub use operations::{
   flip::{FlipDirection, FlipOperation},
   resize::{FilterType, ResizeOperation, calculate_dimensions},
   rotate::{RotateOperation, RotationType},
+  transparent_background::TransparentBackgroundOperation,
 };
