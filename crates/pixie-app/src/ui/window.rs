@@ -279,22 +279,6 @@ impl PixieWindow {
     );
     app_menu.append_section(None, &view_section);
 
-    // Section 5: help
-    let help_section = gio::Menu::new();
-    help_section.append(
-      Some(&gettext("Keyboard Shortcuts")),
-      Some("win.show-help-overlay"),
-    );
-    help_section.append(Some(&gettext("About Pixie")), Some("win.about"));
-    app_menu.append_section(None, &help_section);
-
-    let menu_btn = gtk4::MenuButton::builder()
-      .icon_name("open-menu-symbolic")
-      .tooltip_text(gettext("Main Menu"))
-      .menu_model(&app_menu)
-      .build();
-    header_bar.pack_end(&menu_btn);
-
     // ── Image Information Popover ───────────────────────────────────────
     let properties_folder_label = gtk4::Label::builder()
       .label("")
