@@ -32,6 +32,7 @@ pub struct PixieWindow {
   saved_history_index: Rc<std::cell::Cell<Option<usize>>>,
   saved_metadata_policy: Rc<std::cell::Cell<pixie_core::MetadataPolicy>>,
   saved_metadata_edits: Rc<RefCell<MetadataEdits>>,
+  history_buttons_visible: std::cell::Cell<bool>,
   force_close: Rc<std::cell::Cell<bool>>,
   alt_pressed: std::cell::Cell<bool>,
   pub resize_to_image_on_load: std::cell::Cell<bool>,
@@ -86,6 +87,26 @@ pub struct PixieWindow {
 }
 
 impl PixieWindow {
+  fn update_history_buttons(&self, doc: &PixieDocument) {
+    let visible = self.history_buttons_visible.get();
+    self.undo_btn.set_visible(visible);
+    self.redo_btn.set_visible(visible);
+    self.undo_btn.set_sensitive(doc.history().can_undo());
+    self.redo_btn.set_sensitive(doc.history().can_redo());
+  }
+
+  fn set_history_buttons_visible(&self, visible: bool) {
+    self.history_buttons_visible.set(visible);
+    if let Some(ref doc) = *self.document.borrow() {
+      self.update_history_buttons(doc);
+    } else {
+      self.undo_btn.set_visible(false);
+      self.redo_btn.set_visible(false);
+      self.undo_btn.set_sensitive(false);
+      self.redo_btn.set_sensitive(false);
+    }
+  }
+
   fn refresh_window_title(&self) {
     let has_changes = self.has_unsaved_changes();
     self.save_dropdown_btn.set_visible(has_changes);
@@ -150,11 +171,13 @@ impl PixieWindow {
       .icon_name("edit-undo-symbolic")
       .tooltip_text(gettext("Undo (Ctrl+Z)"))
       .sensitive(false)
+      .visible(false)
       .build();
     let redo_btn = gtk4::Button::builder()
       .icon_name("edit-redo-symbolic")
       .tooltip_text(gettext("Redo (Ctrl+Shift+Z)"))
       .sensitive(false)
+      .visible(false)
       .build();
     header_bar.pack_start(&undo_btn);
     header_bar.pack_start(&redo_btn);
@@ -677,6 +700,7 @@ impl PixieWindow {
       saved_history_index: saved_history_index.clone(),
       saved_metadata_policy: saved_metadata_policy.clone(),
       saved_metadata_edits: saved_metadata_edits.clone(),
+      history_buttons_visible: std::cell::Cell::new(false),
       force_close: force_close.clone(),
       alt_pressed: std::cell::Cell::new(false),
       resize_to_image_on_load: std::cell::Cell::new(false),
@@ -1488,8 +1512,8 @@ impl PixieWindow {
         }
 
         let doc = PixieDocument::new(img.clone(), format);
-        self.undo_btn.set_sensitive(doc.history().can_undo());
-        self.redo_btn.set_sensitive(doc.history().can_redo());
+        self.history_buttons_visible.set(false);
+        self.update_history_buttons(&doc);
         self.saved_metadata_policy.set(doc.metadata_policy);
         *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
         *self.document.borrow_mut() = Some(doc);
@@ -1581,8 +1605,8 @@ impl PixieWindow {
         let mut doc_borrow = self.document.borrow_mut();
         if let Some(ref mut doc) = *doc_borrow {
           doc.commit_rendered_operation(op, img.clone());
-          self.undo_btn.set_sensitive(doc.history().can_undo());
-          self.redo_btn.set_sensitive(doc.history().can_redo());
+          self.history_buttons_visible.set(true);
+          self.update_history_buttons(doc);
         }
         drop(doc_borrow);
         self.enable_sidebar_toggles(true);
@@ -1599,6 +1623,7 @@ impl PixieWindow {
             self.saved_metadata_policy.set(doc.metadata_policy);
             *self.saved_metadata_edits.borrow_mut() = doc.metadata_edits.clone();
           }
+          self.set_history_buttons_visible(false);
           self.update_properties_popover(false);
           self.refresh_window_title();
         }
@@ -1863,8 +1888,8 @@ impl PixieWindow {
             if let Err(e) = self.canvas.set_image(current) {
               undo_error = Some(pixie_core::CoreError::Internal(e));
             } else {
-              self.undo_btn.set_sensitive(doc.history().can_undo());
-              self.redo_btn.set_sensitive(doc.history().can_redo());
+              self.history_buttons_visible.set(true);
+              self.update_history_buttons(doc);
               did_undo = true;
             }
           }
@@ -1899,8 +1924,8 @@ impl PixieWindow {
             if let Err(e) = self.canvas.set_image(current) {
               redo_error = Some(pixie_core::CoreError::Internal(e));
             } else {
-              self.undo_btn.set_sensitive(doc.history().can_undo());
-              self.redo_btn.set_sensitive(doc.history().can_redo());
+              self.history_buttons_visible.set(true);
+              self.update_history_buttons(doc);
               did_redo = true;
             }
           }
