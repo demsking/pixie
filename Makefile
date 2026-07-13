@@ -221,5 +221,9 @@ release: check-clean
 	git commit -m "chore(release): bump version to $$version"; \
 	git tag --annotate "v$$version" --message "Release v$$version"
 
+publish: release ## Publish the package to crates.io
+	git push origin main
+	git push origin "v$(shell sed -n 's/^version = "\(.*\)"/\1/p' $(APP_MANIFEST))"
+
 .PHONY: ci
 ci: fmt-check lint test-all security build-release ## Run all CI steps locally
