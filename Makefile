@@ -28,9 +28,8 @@ update:
 	cargo update
 
 .PHONY: install-hooks
-install-hooks: ## Install pre-commit and pre-push hooks
+install-hooks: ## Install pre-commit
 	pre-commit install
-	pre-commit install --hook-type pre-push
 
 .PHONY: build
 build: ## Build the workspace in debug mode
