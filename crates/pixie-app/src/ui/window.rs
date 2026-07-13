@@ -743,6 +743,7 @@ impl PixieWindow {
 
     // ── Metadata Cleaner Popover Setup ──────────────────────────────────
     let metadata_popover = gtk4::Popover::new();
+    metadata_popover.set_autohide(false);
 
     let popover_box = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Vertical)
@@ -835,6 +836,13 @@ impl PixieWindow {
       }
     });
 
+    let win_metadata_active = win_struct.clone();
+    metadata_btn.connect_active_notify(move |btn| {
+      if btn.is_active() {
+        win_metadata_active.deactivate_sidebar_tools(false);
+      }
+    });
+
     // "Strip all" disables granular toggles, while preserving their selected state.
     let gps_switch_all = gps_switch.clone();
     let camera_switch_all = camera_switch.clone();
@@ -903,6 +911,7 @@ impl PixieWindow {
 
     let win_edit = win_struct.clone();
     metadata_edit_btn.connect_clicked(move |_| {
+      win_edit.deactivate_sidebar_tools(true);
       win_edit.show_metadata_editor_popover();
     });
 
@@ -1001,6 +1010,7 @@ impl PixieWindow {
     // Mirror & Flip click handlers
     let win_mirror = win_struct.clone();
     mirror_btn.connect_clicked(move |_| {
+      win_mirror.deactivate_sidebar_tools(true);
       win_mirror.apply_image_operation(ImageOperation::Flip(FlipOperation::new(
         FlipDirection::Horizontal,
       )));
@@ -1008,6 +1018,7 @@ impl PixieWindow {
 
     let win_flip = win_struct.clone();
     flip_btn.connect_clicked(move |_| {
+      win_flip.deactivate_sidebar_tools(true);
       win_flip.apply_image_operation(ImageOperation::Flip(FlipOperation::new(
         FlipDirection::Vertical,
       )));
@@ -1015,6 +1026,7 @@ impl PixieWindow {
 
     let win_rotate = win_struct.clone();
     rotate_btn.connect_clicked(move |_| {
+      win_rotate.deactivate_sidebar_tools(true);
       let rotation = if win_rotate.alt_pressed.get() {
         RotationType::Ccw90
       } else {
@@ -1025,6 +1037,7 @@ impl PixieWindow {
 
     let win_transparent_background = win_struct.clone();
     transparent_background_btn.connect_clicked(move |_| {
+      win_transparent_background.deactivate_sidebar_tools(true);
       win_transparent_background.apply_image_operation(ImageOperation::TransparentBackground(
         TransparentBackgroundOperation::new(12),
       ));
@@ -1093,6 +1106,7 @@ impl PixieWindow {
           win_canvas_click.canvas.set_crop_active(false);
         }
       }
+      win_canvas_click.close_metadata_cleaner_popover();
     });
     canvas.drawing_area.add_controller(click_close_sidebar);
 
@@ -1938,9 +1952,10 @@ impl PixieWindow {
     self.canvas.set_crop_active(false);
     self.crop_actions_bar.set_visible(false);
     self.close_tool_popover();
+    self.close_metadata_cleaner_popover();
 
     let popover = gtk4::Popover::builder()
-      .autohide(true)
+      .autohide(false)
       .has_arrow(true)
       .position(gtk4::PositionType::Top)
       .build();
@@ -1960,8 +1975,14 @@ impl PixieWindow {
     popover.set_parent(&self.crop_btn);
 
     let active_popover = self.active_tool_popover.clone();
+    let popover_weak = popover.downgrade();
     popover.connect_closed(move |_| {
-      *active_popover.borrow_mut() = None;
+      if let Some(closed_popover) = popover_weak.upgrade() {
+        let mut active = active_popover.borrow_mut();
+        if active.as_ref() == Some(&closed_popover) {
+          *active = None;
+        }
+      }
     });
 
     popover.popup();
@@ -1971,6 +1992,7 @@ impl PixieWindow {
   fn show_resize_tool(self: &Rc<Self>) {
     self.canvas.set_crop_active(false);
     self.close_tool_popover();
+    self.close_metadata_cleaner_popover();
 
     let current_file_size = self
       .current_file_path
@@ -1990,7 +2012,7 @@ impl PixieWindow {
     );
 
     let popover = gtk4::Popover::builder()
-      .autohide(true)
+      .autohide(false)
       .has_arrow(true)
       .position(gtk4::PositionType::Top)
       .build();
@@ -1998,8 +2020,14 @@ impl PixieWindow {
     popover.set_parent(&self.resize_btn);
 
     let active_popover = self.active_tool_popover.clone();
+    let popover_weak = popover.downgrade();
     popover.connect_closed(move |_| {
-      *active_popover.borrow_mut() = None;
+      if let Some(closed_popover) = popover_weak.upgrade() {
+        let mut active = active_popover.borrow_mut();
+        if active.as_ref() == Some(&closed_popover) {
+          *active = None;
+        }
+      }
     });
 
     popover.popup();
@@ -2008,9 +2036,10 @@ impl PixieWindow {
 
   fn show_metadata_editor_popover(self: &Rc<Self>) {
     self.close_tool_popover();
+    self.close_metadata_cleaner_popover();
 
     let popover = gtk4::Popover::builder()
-      .autohide(true)
+      .autohide(false)
       .has_arrow(true)
       .position(gtk4::PositionType::Top)
       .build();
@@ -2156,8 +2185,14 @@ impl PixieWindow {
     popover.set_parent(&self.metadata_edit_btn);
 
     let active_popover = self.active_tool_popover.clone();
+    let popover_weak = popover.downgrade();
     popover.connect_closed(move |_| {
-      *active_popover.borrow_mut() = None;
+      if let Some(closed_popover) = popover_weak.upgrade() {
+        let mut active = active_popover.borrow_mut();
+        if active.as_ref() == Some(&closed_popover) {
+          *active = None;
+        }
+      }
     });
 
     popover.popup();
@@ -2174,10 +2209,29 @@ impl PixieWindow {
   }
 
   fn close_tool_popover(&self) {
-    if let Some(popover) = self.active_tool_popover.borrow_mut().take() {
+    let popover = self.active_tool_popover.borrow_mut().take();
+    if let Some(popover) = popover {
       popover.popdown();
     }
     self.sidebar.clear();
+  }
+
+  fn close_metadata_cleaner_popover(&self) {
+    if let Some(popover) = self.metadata_btn.popover() {
+      popover.popdown();
+    }
+  }
+
+  fn deactivate_sidebar_tools(&self, close_metadata: bool) {
+    self.crop_btn.set_active(false);
+    self.resize_btn.set_active(false);
+    self.canvas.set_crop_active(false);
+    self.crop_actions_bar.set_visible(false);
+    self.set_floating_controls_visible(true);
+    self.close_tool_popover();
+    if close_metadata {
+      self.close_metadata_cleaner_popover();
+    }
   }
 
   fn show_toast(&self, message: &str) {
