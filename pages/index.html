@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pixie — Modern & Secure Image Processor</title>
+    <title>Pixie — Simple Image Processor</title>
     <meta
       name="description"
-      content="A modern, secure, and lightweight GTK4 image processor built with Rust. Crop, resize, rotate, and strip metadata with privacy-focused defaults."
+      content="A modern, lightweight GTK4 image processor built with Rust. Crop, resize, rotate, clean metadata, remove backgrounds, and convert images."
     />
 
     <!-- Fonts -->
@@ -34,7 +34,6 @@
         <nav class="nav-links">
           <a href="#features">Features</a>
           <a href="#install">Installation</a>
-          <a href="#security">Privacy &amp; Security</a>
         </nav>
         <div class="nav-actions">
           <a
@@ -75,9 +74,9 @@
             >
           </h1>
           <p class="hero-subtitle">
-            Pixie is a lightweight, secure, and privacy-focused image editor
-            designed for GNOME. Crop, resize, rotate, and strip metadata with
-            non-destructive speed and safe defaults.
+            Pixie is a lightweight image editor designed for GNOME. Crop,
+            resize, rotate, clean metadata, remove backgrounds, and convert
+            images with straightforward tools.
           </p>
           <div class="hero-actions">
             <a href="#install" class="btn btn-primary btn-large"
@@ -105,7 +104,7 @@
           </div>
 
           <div class="hero-formats">
-            <span class="formats-label">Supported Formats:</span>
+            <span class="formats-label">Supported Formats</span>
             <div class="formats-list">
               <span class="format-badge">PNG</span>
               <span class="format-badge">JPEG</span>
@@ -124,10 +123,10 @@
     <section id="features" class="section features-section">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">Designed for focus, speed, and safety.</h2>
+          <h2 class="section-title">Simple tools for everyday image edits.</h2>
           <p class="section-subtitle">
-            No bloated graphics suites. Pixie offers highly refined features
-            optimized for daily workflows.
+            Pixie keeps the common image tasks close at hand, with clear tools
+            that do exactly what you expect.
           </p>
         </div>
 
@@ -143,18 +142,14 @@
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                <line x1="15" y1="3" x2="15" y2="21" />
-                <line x1="3" y1="9" x2="21" y2="9" />
-                <line x1="3" y1="15" x2="21" y2="15" />
+                <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+                <path d="M18 22V8a2 2 0 0 0-2-2H2" />
               </svg>
             </div>
-            <h3 class="feature-card-title">Interactive Crop</h3>
+            <h3 class="feature-card-title">Crop</h3>
             <p class="feature-card-text">
-              Free-form crop or lock to standard ratios (1:1, 16:9, 4:3, etc.).
-              Use the built-in rule-of-thirds grid for perfectly composed
-              results.
+              Trim away unwanted edges and keep the part of the picture that
+              matters.
             </p>
           </div>
 
@@ -169,14 +164,17 @@
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="M15 3h6v6" />
+                <path d="m21 3-7 7" />
+                <path d="M9 21H3v-6" />
+                <path d="m3 21 7-7" />
+                <rect x="6" y="6" width="12" height="12" rx="2" />
               </svg>
             </div>
-            <h3 class="feature-card-title">Privacy Protection</h3>
+            <h3 class="feature-card-title">Resize</h3>
             <p class="feature-card-text">
-              Every image processed automatically strips EXIF data, GPS
-              coordinates, camera models, and history parameters to protect your
-              location and identity.
+              Make images smaller or fit them to the size you need for sharing,
+              posting, or saving space.
             </p>
           </div>
 
@@ -191,15 +189,13 @@
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
               </svg>
             </div>
-            <h3 class="feature-card-title">Non-Destructive Pipeline</h3>
+            <h3 class="feature-card-title">Clean Metadata</h3>
             <p class="feature-card-text">
-              Edits are compiled as a sequence of mathematical operations.
-              Adjust or revert parameters at any step, with full-res rendering
-              happening lazily on export.
+              Remove hidden details like location, camera, and editing
+              information before you share an image.
             </p>
           </div>
 
@@ -215,17 +211,19 @@
                 stroke-width="2"
               >
                 <path
-                  d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
                 />
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                <line x1="12" y1="22.08" x2="12" y2="12" />
+                <path d="M14 2v6h6" />
+                <path d="M8 13h4" />
+                <path d="M8 17h3" />
+                <path d="m15 18 5-5" />
+                <path d="m16 13 4 4" />
               </svg>
             </div>
-            <h3 class="feature-card-title">Bomb-Proof Decoding</h3>
+            <h3 class="feature-card-title">Edit Metadata</h3>
             <p class="feature-card-text">
-              Pixie verifies headers and dimensions prior to reading the canvas
-              buffer, protecting your hardware from dangerous decompression bomb
-              exploits.
+              Review and update image details when you want the file to carry
+              the right information.
             </p>
           </div>
 
@@ -233,22 +231,33 @@
           <div class="feature-card">
             <div class="feature-icon bg-purple-light">
               <svg
-                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
                 width="24"
                 height="24"
+                viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="lucide lucide-wand-sparkles-icon lucide-wand-sparkles"
               >
-                <rect x="2" y="2" width="20" height="20" rx="2" ry="2" />
-                <path d="M7 10h10M12 5v14" />
+                <path
+                  d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"
+                />
+                <path d="m14 7 3 3" />
+                <path d="M5 6v4" />
+                <path d="M19 14v4" />
+                <path d="M10 2v2" />
+                <path d="M7 8H3" />
+                <path d="M21 16h-4" />
+                <path d="M11 3H9" />
               </svg>
             </div>
-            <h3 class="feature-card-title">Lanczos3 Interpolation</h3>
+            <h3 class="feature-card-title">Transparent Background</h3>
             <p class="feature-card-text">
-              Aspect ratio locked scaling preventing enlargement. Leverages
-              top-tier Lanczos3 filter interpolation for sharp and artifact-free
-              resizing.
+              Remove a background so the subject can stand on its own in
+              designs, documents, and profile images.
             </p>
           </div>
 
@@ -263,16 +272,93 @@
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
+                <path d="M21 12a9 9 0 1 1-3-6.7" />
+                <path d="M21 3v6h-6" />
+                <path d="M8 12h8" />
+                <path d="M12 8v8" />
               </svg>
             </div>
-            <h3 class="feature-card-title">Native Libadwaita</h3>
+            <h3 class="feature-card-title">Rotate</h3>
             <p class="feature-card-text">
-              Conforms cleanly to the GNOME Human Interface Guidelines.
-              Perfectly adapts to desktop dark/light mode configurations and
-              touch gestures.
+              Turn sideways or upside-down photos into the correct orientation
+              in a single step.
+            </p>
+          </div>
+
+          <!-- Feature 7 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-primary-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 3v18" />
+                <path d="m8 8-4 4 4 4" />
+                <path d="M4 12h7" />
+                <path d="m16 8 4 4-4 4" />
+                <path d="M13 12h7" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Mirror Image</h3>
+            <p class="feature-card-text">
+              Reverse a picture left to right when it looks better facing the
+              other way.
+            </p>
+          </div>
+
+          <!-- Feature 8 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-success-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M12 5v14" />
+                <path d="M4 12h16" />
+                <path d="m8 8 4-4 4 4" />
+                <path d="M12 4v7" />
+                <path d="m8 16 4 4 4-4" />
+                <path d="M12 13v7" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Flip</h3>
+            <p class="feature-card-text">
+              Flip an image from top to bottom to quickly correct or experiment
+              with its direction.
+            </p>
+          </div>
+
+          <!-- Feature 9 -->
+          <div class="feature-card">
+            <div class="feature-icon bg-warning-light">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M7 7h10l-3-3" />
+                <path d="M17 7l-3 3" />
+                <path d="M17 17H7l3 3" />
+                <path d="M7 17l3-3" />
+                <rect x="4" y="4" width="6" height="6" rx="1" />
+                <rect x="14" y="14" width="6" height="6" rx="1" />
+              </svg>
+            </div>
+            <h3 class="feature-card-title">Convert Images</h3>
+            <p class="feature-card-text">
+              Save an image in another format when you need a different file
+              type for a website, app, or device.
             </p>
           </div>
         </div>
@@ -339,70 +425,68 @@
       </div>
     </section>
 
-    <!-- Security & Privacy Section -->
-    <section id="security" class="section security-section">
+    <!-- Image Cleanup Section -->
+    <section id="image-cleanup" class="section cleanup-section">
       <div class="container flex-row-responsive">
-        <div class="security-text">
+        <div class="cleanup-text">
           <h2 class="section-title">
-            Designed with deep security and privacy principles.
+            Keep image files clean and ready to share.
           </h2>
-          <div class="security-points">
-            <div class="security-point">
-              <div class="security-point-number">01</div>
+          <div class="cleanup-points">
+            <div class="cleanup-point">
+              <div class="cleanup-point-number">01</div>
               <div>
-                <h4>Rust Memory Safety</h4>
+                <h4>Built for GNOME</h4>
                 <p>
-                  Built completely in Rust, Pixie prevents common memory
-                  corruption vulnerabilities (such as buffer overflows or
-                  dangling pointers) that frequently plague native C/C++ image
-                  decoders.
+                  Pixie feels at home on the desktop, with a simple interface
+                  for quick image edits.
                 </p>
               </div>
             </div>
-            <div class="security-point">
-              <div class="security-point-number">02</div>
+            <div class="cleanup-point">
+              <div class="cleanup-point-number">02</div>
               <div>
-                <h4>Zero Metadata Footprint</h4>
+                <h4>Metadata Cleanup</h4>
                 <p>
-                  By default, Pixie strips EXIF, GPS coordinates, timestamps,
-                  editing tools, and camera details upon exporting, ensuring you
-                  never accidentally share tracking coordinates.
+                  Remove hidden file details like location, camera, and editing
+                  information when you do not want them attached to an image.
                 </p>
               </div>
             </div>
-            <div class="security-point">
-              <div class="security-point-number">03</div>
+            <div class="cleanup-point">
+              <div class="cleanup-point-number">03</div>
               <div>
-                <h4>Decompression Bomb Shielding</h4>
+                <h4>Local Editing</h4>
                 <p>
-                  Before allocating GPU/CPU memory for a full canvas, Pixie
-                  inspects header byte data to prevent pixel ratios from
-                  exceeding physical bounds, shielding you from memory
-                  exhaustion crashes.
+                  Work with your images in a desktop app for everyday tasks like
+                  cropping, resizing, rotating, and converting files.
                 </p>
               </div>
             </div>
           </div>
         </div>
-        <div class="security-visual">
-          <div class="shield-graphic-container">
-            <div class="shield-ring outer"></div>
-            <div class="shield-ring middle"></div>
-            <div class="shield-ring inner"></div>
-            <div class="shield-card">
+        <div class="cleanup-visual">
+          <div class="file-graphic-container">
+            <div class="file-ring outer"></div>
+            <div class="file-ring middle"></div>
+            <div class="file-ring inner"></div>
+            <div class="file-card">
               <svg
-                class="shield-glow-icon"
+                class="file-glow-icon"
                 viewBox="0 0 24 24"
                 width="72"
                 height="72"
                 fill="currentColor"
               >
                 <path
-                  d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"
+                  d="M4 5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"
                 />
+                <path d="M14 3v6h6" />
+                <path d="M8 14h8" />
+                <path d="M8 18h5" />
               </svg>
-              <div class="shield-status-text">SECURE PIPELINE</div>
-              <div class="shield-pulse-dot"></div>
+              <div class="file-status-text">IMAGE READY</div>
+              <div class="file-pulse-dot"></div>
             </div>
           </div>
         </div>
@@ -419,8 +503,8 @@
               <span>Pixie</span>
             </div>
             <p class="footer-desc">
-              Modern, secure, and lightweight image editor built with GTK4 and
-              Rust.
+              A modern image editor for quick crops, resizing, cleanup, and
+              format conversion.
             </p>
           </div>
           <div class="footer-links-col">
@@ -471,7 +555,7 @@
             License.
           </p>
           <p class="attribution">
-            Web design crafted for Pixie's official documentation.
+            Made for people who need quick image edits.
           </p>
         </div>
       </div>
