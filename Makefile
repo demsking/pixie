@@ -108,6 +108,9 @@ flatpak: flatpak-build ## Alias for flatpak-build
 flatpak-build: ## Build flatpak package locally
 	flatpak-builder --force-clean --user --install-deps-from=flathub --repo=repo build-dir packaging/flatpak/io.gitlab.demsking.Pixie.json
 
+flatpak-install: ## Install flatpak package locally
+	flatpak-builder --force-clean --user --install --install-deps-from=flathub --repo=repo build-dir packaging/flatpak/io.gitlab.demsking.Pixie.json
+
 .PHONY: flatpak-run
 flatpak-run: ## Run flatpak app
 	flatpak run io.gitlab.demsking.Pixie

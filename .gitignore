@@ -3,8 +3,7 @@
 .flatpak-builder/
 build/
 bin/
-public/
-docs/book/
+repo/
 *.log
 .pre-commit-config.yaml.tmp
 .cargo-ok
