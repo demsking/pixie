@@ -37,10 +37,6 @@ pub struct PixieWindow {
   alt_pressed: std::cell::Cell<bool>,
   pub resize_to_image_on_load: std::cell::Cell<bool>,
 
-  // Folder navigation state
-  folder_images: Rc<RefCell<Vec<PathBuf>>>,
-  folder_index: Rc<RefCell<usize>>,
-
   // Toast/Notifications tracking
   active_toasts: Rc<RefCell<Vec<adw::Toast>>>,
 
@@ -56,18 +52,15 @@ pub struct PixieWindow {
   mirror_btn: gtk4::Button,
   flip_btn: gtk4::Button,
   crop_actions_bar: gtk4::Box,
-  floating_nav_bar: gtk4::Box,
+  floating_transform_bar: gtk4::Box,
   floating_tool_bar: gtk4::Box,
   undo_btn: gtk4::Button,
   redo_btn: gtk4::Button,
   save_btn: gtk4::Button,
   export_btn: gtk4::Button,
-  nav_prev_btn: gtk4::Button,
-  nav_next_btn: gtk4::Button,
   zoom_badge_btn: gtk4::Button,
   properties_btn: gtk4::MenuButton,
   save_dropdown_btn: gtk4::MenuButton,
-  properties_folder_label: gtk4::Label,
   properties_size_label: gtk4::Label,
   properties_format_label: gtk4::Label,
   properties_aspect_ratio_label: gtk4::Label,
@@ -292,12 +285,6 @@ impl PixieWindow {
     header_bar.pack_end(&app_menu_btn);
 
     // ── Image Information Popover ───────────────────────────────────────
-    let properties_folder_label = gtk4::Label::builder()
-      .label("")
-      .halign(gtk4::Align::Start)
-      .css_classes(["info-value"])
-      .build();
-
     let properties_size_label = gtk4::Label::builder()
       .label("")
       .halign(gtk4::Align::Start)
@@ -373,50 +360,6 @@ impl PixieWindow {
       .margin_end(6)
       .width_request(260)
       .build();
-
-    // Group 1: Folder
-    let listbox1 = gtk4::ListBox::builder()
-      .selection_mode(gtk4::SelectionMode::None)
-      .css_classes(["boxed-list"])
-      .build();
-
-    let folder_row = gtk4::ListBoxRow::builder()
-      .activatable(false)
-      .selectable(false)
-      .build();
-    let folder_hbox = gtk4::Box::builder()
-      .orientation(gtk4::Orientation::Horizontal)
-      .spacing(8)
-      .margin_top(8)
-      .margin_bottom(8)
-      .margin_start(12)
-      .margin_end(12)
-      .build();
-    let folder_vbox = gtk4::Box::builder()
-      .orientation(gtk4::Orientation::Vertical)
-      .spacing(2)
-      .hexpand(true)
-      .build();
-    let folder_title_lbl = gtk4::Label::builder()
-      .label(gettext("Folder"))
-      .halign(gtk4::Align::Start)
-      .css_classes(["info-title"])
-      .build();
-    folder_vbox.append(&folder_title_lbl);
-    folder_vbox.append(&properties_folder_label);
-
-    let properties_folder_btn = gtk4::Button::builder()
-      .icon_name("folder-symbolic")
-      .halign(gtk4::Align::End)
-      .valign(gtk4::Align::Center)
-      .css_classes(["flat"])
-      .tooltip_text(gettext("Open Containing Folder"))
-      .build();
-    folder_hbox.append(&folder_vbox);
-    folder_hbox.append(&properties_folder_btn);
-    folder_row.set_child(Some(&folder_hbox));
-    listbox1.append(&folder_row);
-    properties_popover_box.append(&listbox1);
 
     // Helper to create listbox row with title and value
     let create_row = |title: String, value_lbl: &gtk4::Label| -> gtk4::ListBoxRow {
@@ -578,10 +521,10 @@ impl PixieWindow {
 
     center_box.append(&stack);
 
-    // ── Floating navigation bar (bottom-left) ───────────────────────────
-    let nav_bar = gtk4::Box::builder()
+    // ── Floating transform bar (bottom-left) ───────────────────────────
+    let transform_bar = gtk4::Box::builder()
       .orientation(gtk4::Orientation::Horizontal)
-      .spacing(0)
+      .spacing(6)
       .margin_bottom(16)
       .margin_start(16)
       .halign(gtk4::Align::Start)
@@ -589,21 +532,11 @@ impl PixieWindow {
       .css_classes(["floating-toolbar"])
       .build();
 
-    let nav_prev_btn = gtk4::Button::builder()
-      .icon_name("go-previous-symbolic")
-      .tooltip_text(gettext("Previous Image"))
-      .sensitive(false)
-      .css_classes(["floating-toolbar__button"])
-      .build();
-    let nav_next_btn = gtk4::Button::builder()
-      .icon_name("go-next-symbolic")
-      .tooltip_text(gettext("Next Image"))
-      .sensitive(false)
-      .css_classes(["floating-toolbar__button"])
-      .build();
-    nav_bar.append(&nav_prev_btn);
-    nav_bar.append(&nav_next_btn);
-    overlay.add_overlay(&nav_bar);
+    transform_bar.append(&transparent_background_btn);
+    transform_bar.append(&rotate_btn);
+    transform_bar.append(&mirror_btn);
+    transform_bar.append(&flip_btn);
+    overlay.add_overlay(&transform_bar);
 
     // ── Floating tool bar (bottom-right) ─────────────────────────────
     let tool_bar = gtk4::Box::builder()
@@ -620,10 +553,6 @@ impl PixieWindow {
     tool_bar.append(&resize_btn);
     tool_bar.append(&metadata_btn);
     tool_bar.append(&metadata_edit_btn);
-    tool_bar.append(&transparent_background_btn);
-    tool_bar.append(&rotate_btn);
-    tool_bar.append(&mirror_btn);
-    tool_bar.append(&flip_btn);
     overlay.add_overlay(&tool_bar);
 
     // ── Floating crop actions bar (bottom-center) ─────────────────────
@@ -676,8 +605,6 @@ impl PixieWindow {
     let document = Rc::new(RefCell::new(None::<PixieDocument>));
     let current_file_path = Rc::new(RefCell::new(None::<PathBuf>));
     let active_tool_popover = Rc::new(RefCell::new(None::<gtk4::Popover>));
-    let folder_images: Rc<RefCell<Vec<PathBuf>>> = Rc::new(RefCell::new(Vec::new()));
-    let folder_index: Rc<RefCell<usize>> = Rc::new(RefCell::new(0));
     let saved_history_index = Rc::new(std::cell::Cell::new(None));
     let saved_metadata_policy =
       Rc::new(std::cell::Cell::new(pixie_core::MetadataPolicy::default()));
@@ -700,8 +627,6 @@ impl PixieWindow {
       force_close: force_close.clone(),
       alt_pressed: std::cell::Cell::new(false),
       resize_to_image_on_load: std::cell::Cell::new(false),
-      folder_images: folder_images.clone(),
-      folder_index: folder_index.clone(),
       active_toasts: active_toasts.clone(),
       progress_bar: progress_bar.clone(),
       toast_overlay: toast_overlay.clone(),
@@ -714,18 +639,15 @@ impl PixieWindow {
       mirror_btn: mirror_btn.clone(),
       flip_btn: flip_btn.clone(),
       crop_actions_bar: crop_actions_bar.clone(),
-      floating_nav_bar: nav_bar.clone(),
+      floating_transform_bar: transform_bar.clone(),
       floating_tool_bar: tool_bar.clone(),
       undo_btn: undo_btn.clone(),
       redo_btn: redo_btn.clone(),
       save_btn: save_btn.clone(),
       export_btn: export_btn.clone(),
-      nav_prev_btn: nav_prev_btn.clone(),
-      nav_next_btn: nav_next_btn.clone(),
       zoom_badge_btn: zoom_badge_btn.clone(),
       properties_btn: properties_btn.clone(),
       save_dropdown_btn: save_dropdown_btn.clone(),
-      properties_folder_label: properties_folder_label.clone(),
       properties_size_label: properties_size_label.clone(),
       properties_format_label: properties_format_label.clone(),
       properties_aspect_ratio_label: properties_aspect_ratio_label.clone(),
@@ -748,17 +670,6 @@ impl PixieWindow {
     let win_properties_map = win_struct.clone();
     properties_popover.connect_map(move |_| {
       win_properties_map.update_properties_popover(true);
-    });
-
-    let win_folder_click = win_struct.clone();
-    properties_folder_btn.connect_clicked(move |_| {
-      if let Some(ref path) = *win_folder_click.current_file_path.borrow() {
-        if let Some(parent_path) = path.parent() {
-          if let Ok(uri) = glib::filename_to_uri(parent_path, None) {
-            let _ = gio::AppInfo::launch_default_for_uri(&uri, None::<&gio::AppLaunchContext>);
-          }
-        }
-      }
     });
 
     // ── Metadata Cleaner Popover Setup ──────────────────────────────────
@@ -1015,16 +926,6 @@ impl PixieWindow {
     let win_cl5 = win_struct.clone();
     redo_btn.connect_clicked(move |_| {
       win_cl5.trigger_redo();
-    });
-
-    // Nav buttons
-    let win_nav_prev = win_struct.clone();
-    nav_prev_btn.connect_clicked(move |_| {
-      win_nav_prev.navigate_prev();
-    });
-    let win_nav_next = win_struct.clone();
-    nav_next_btn.connect_clicked(move |_| {
-      win_nav_next.navigate_next();
     });
 
     // Mirror & Flip click handlers
@@ -1452,30 +1353,6 @@ impl PixieWindow {
       )],
     ));
 
-    // Scan sibling images in the same folder
-    if let Some(dir) = path.parent() {
-      let supported: &[&str] = &["png", "jpg", "jpeg", "webp", "avif", "bmp", "tiff", "gif"];
-      let siblings: Vec<PathBuf> = std::fs::read_dir(dir)
-        .map(|entries| {
-          let mut v: Vec<PathBuf> = entries
-            .filter_map(|e| e.ok().map(|e| e.path()))
-            .filter(|p| {
-              p.extension()
-                .and_then(|e| e.to_str())
-                .map(|e| supported.contains(&e.to_lowercase().as_str()))
-                .unwrap_or(false)
-            })
-            .collect();
-          v.sort();
-          v
-        })
-        .unwrap_or_default();
-
-      let idx = siblings.iter().position(|p| p == &path).unwrap_or(0);
-      *self.folder_images.borrow_mut() = siblings;
-      *self.folder_index.borrow_mut() = idx;
-    }
-
     *self.current_file_path.borrow_mut() = Some(path.clone());
     self.progress_bar.set_visible(true);
     self.progress_bar.set_fraction(0.0);
@@ -1573,12 +1450,6 @@ impl PixieWindow {
           .unwrap()
           .set_enabled(true);
 
-        // Update navigation buttons
-        let images = self.folder_images.borrow();
-        let has_nav = images.len() > 1;
-        self.nav_prev_btn.set_sensitive(has_nav);
-        self.nav_next_btn.set_sensitive(has_nav);
-
         // Enable tools
         if self.window.content().unwrap().first_child().is_some() {
           // Quick scan to find toggles
@@ -1652,7 +1523,7 @@ impl PixieWindow {
   }
 
   fn set_floating_controls_visible(&self, visible: bool) {
-    self.floating_nav_bar.set_visible(visible);
+    self.floating_transform_bar.set_visible(visible);
     self.floating_tool_bar.set_visible(visible);
   }
 
@@ -2308,65 +2179,6 @@ impl PixieWindow {
     }
   }
 
-  fn navigate_to_index(self: &Rc<Self>, index: usize) {
-    let images = self.folder_images.borrow();
-    if let Some(path) = images.get(index) {
-      let path = path.clone();
-      drop(images);
-      if self.has_unsaved_changes() {
-        let dialog = adw::AlertDialog::new(
-          Some(&gettext("Discard Changes?")),
-          Some(&gettext(
-            "The image has unsaved changes. Do you want to discard them and switch images?",
-          )),
-        );
-
-        dialog.add_response("cancel", &gettext("Cancel"));
-        dialog.add_response("discard", &gettext("Discard"));
-        dialog.set_response_appearance("discard", adw::ResponseAppearance::Destructive);
-        dialog.set_close_response("cancel");
-
-        let self_cl = self.clone();
-        let path_cl = path.clone();
-        dialog.choose(
-          Some(&self.window),
-          None::<&gio::Cancellable>,
-          move |response| {
-            if response == "discard" {
-              *self_cl.folder_index.borrow_mut() = index;
-              self_cl.open_file(path_cl.clone());
-            }
-          },
-        );
-      } else {
-        *self.folder_index.borrow_mut() = index;
-        self.open_file(path);
-      }
-    }
-  }
-
-  fn navigate_prev(self: &Rc<Self>) {
-    let index = *self.folder_index.borrow();
-    let images = self.folder_images.borrow();
-    let count = images.len();
-    drop(images);
-    if count > 0 {
-      let new_index = if index == 0 { count - 1 } else { index - 1 };
-      self.navigate_to_index(new_index);
-    }
-  }
-
-  fn navigate_next(self: &Rc<Self>) {
-    let index = *self.folder_index.borrow();
-    let images = self.folder_images.borrow();
-    let count = images.len();
-    drop(images);
-    if count > 0 {
-      let new_index = (index + 1) % count;
-      self.navigate_to_index(new_index);
-    }
-  }
-
   fn has_unsaved_changes(&self) -> bool {
     let doc_borrow = self.document.borrow();
     if let Some(ref doc) = *doc_borrow {
@@ -2467,13 +2279,6 @@ impl PixieWindow {
     }
     let path_borrow = self.current_file_path.borrow();
     if let Some(ref path) = *path_borrow {
-      let folder_name = path
-        .parent()
-        .and_then(|p| p.file_name())
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| gettext("Unknown"));
-      self.properties_folder_label.set_label(&folder_name);
-
       let format_str = if let Some(ref doc) = *self.document.borrow() {
         format!("{:?}", doc.original_format()).to_uppercase()
       } else {
