@@ -990,24 +990,23 @@ impl PixieWindow {
       }
     });
 
-    // Zoom on Ctrl+Scroll
+    // Zoom on mouse scroll
     let win_scroll = win_struct.clone();
     let scrolled_cl = scrolled.clone();
     let scroll_controller =
       gtk4::EventControllerScroll::new(gtk4::EventControllerScrollFlags::VERTICAL);
     scroll_controller.connect_scroll(move |controller, _dx, dy| {
-      let state = controller.current_event_state();
-      if state.contains(gtk4::gdk::ModifierType::CONTROL_MASK) {
-        if dy < 0.0 {
-          win_scroll.canvas.zoom_in();
-        } else if dy > 0.0 {
-          win_scroll.canvas.zoom_out();
-        }
-        win_scroll.update_zoom_badge();
-        glib::Propagation::Stop
+      let _ = controller;
+      if dy < 0.0 {
+        win_scroll.canvas.zoom_in();
+      } else if dy > 0.0 {
+        win_scroll.canvas.zoom_out();
       } else {
-        glib::Propagation::Proceed
+        return glib::Propagation::Proceed;
       }
+
+      win_scroll.update_zoom_badge();
+      glib::Propagation::Stop
     });
     scrolled_cl.add_controller(scroll_controller);
 
