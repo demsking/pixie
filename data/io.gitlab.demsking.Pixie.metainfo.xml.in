@@ -7,11 +7,21 @@
   <summary>Modern Image Processor</summary>
   <description>
     <p>
-      Pixie is a modern, secure image processor built for the GNOME desktop.
-      Crop, resize, rotate, flip, and convert your images with precision—all
-      in a clean, intuitive interface that respects your privacy and performance.
+      Pixie is a modern image processor built for the GNOME desktop.
+      Crop, resize, rotate, flip, mirror, clean metadata, remove backgrounds,
+      and convert images with focused tools in a simple interface.
     </p>
   </description>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://demsking.gitlab.io/pixie/screenshot-01.png</image>
+      <caption>Pixie editing workspace with image transform tools</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://demsking.gitlab.io/pixie/screenshot-02.png</image>
+      <caption>Image export options and metadata controls</caption>
+    </screenshot>
+  </screenshots>
   <launchable type="desktop-id">io.gitlab.demsking.Pixie.desktop</launchable>
   <url type="homepage">https://demsking.gitlab.io/pixie</url>
   <url type="bugtracker">https://gitlab.com/demsking/pixie/issues</url>

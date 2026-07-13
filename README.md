@@ -10,7 +10,7 @@ Pixie is a modern, lightweight image processor for everyday edits. It provides
 focused tools for cropping, resizing, cleaning metadata, removing backgrounds,
 rotating, flipping, mirroring, and converting images in a simple desktop app.
 
-![Screenshot Placeholder](pages/logo.png)
+![Screenshot Placeholder](pages/screenshot-02.png)
 
 ## Features
 
